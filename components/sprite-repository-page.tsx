@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Grid3X3, Download, Search, Loader2, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { usePokemonPage, usePokemonSearch, gameVersions, type GameVersion } from "@/hooks/use-pokemon-api"
@@ -379,6 +381,8 @@ function Pagination({
 }
 
 export function SpriteRepositoryPage({ onPageChange, onLoadSprite }: SpriteRepositoryPageProps) {
+  const { data: session } = useSession()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [selectedGameVersion, setSelectedGameVersion] = useState<GameVersion>(gameVersions[7]) // Default to Black/White
@@ -428,6 +432,25 @@ export function SpriteRepositoryPage({ onPageChange, onLoadSprite }: SpriteRepos
                 Pokemon Repository
               </Button>
             </nav>
+          </div>
+          <div className="flex items-center gap-3">
+            {session?.user ? (
+              <Button
+                variant="ghost"
+                className="text-slate-300 hover:text-white"
+                onClick={() => signOut()}
+              >
+                Sign Out
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                className="text-slate-300 hover:text-white"
+                onClick={() => router.push("/auth/signin")}
+              >
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </header>

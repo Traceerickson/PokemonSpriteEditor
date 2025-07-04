@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Grid3X3, Plus, FolderOpen, Clock, Star, Loader2 } from "lucide-react"
@@ -13,6 +14,7 @@ interface ProjectsPageProps {
 
 export function ProjectsPage({ onPageChange, onNewProject }: ProjectsPageProps) {
   const { data: session } = useSession()
+  const router = useRouter()
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -119,13 +121,32 @@ export function ProjectsPage({ onPageChange, onNewProject }: ProjectsPageProps) 
               <Button variant="ghost" className="text-slate-300 hover:text-white">
                 Gallery
               </Button>
-            </nav>
-          </div>
+          </nav>
+         </div>
 
-          <Button onClick={onNewProject} className="bg-green-600 hover:bg-green-700">
-            <Plus className="w-4 h-4 mr-2" />
-            New Project
-          </Button>
+          <div className="flex items-center gap-3">
+            {session?.user ? (
+              <Button
+                variant="ghost"
+                className="text-slate-300 hover:text-white"
+                onClick={() => signOut()}
+              >
+                Sign Out
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                className="text-slate-300 hover:text-white"
+                onClick={() => router.push("/auth/signin")}
+              >
+                Sign In
+              </Button>
+            )}
+            <Button onClick={onNewProject} className="bg-green-600 hover:bg-green-700">
+              <Plus className="w-4 h-4 mr-2" />
+              New Project
+            </Button>
+          </div>
         </div>
       </header>
 

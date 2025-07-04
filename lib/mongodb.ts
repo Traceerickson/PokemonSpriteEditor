@@ -1,11 +1,15 @@
 import mongoose from "mongoose"
+import dotenv from "dotenv"
+
+
+dotenv.config()
 
 interface MongooseCache {
   conn: typeof mongoose | null
   promise: Promise<typeof mongoose> | null
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || ""
+const MONGODB_URI = process.env.MONGODB_URI
 
 if (!MONGODB_URI) {
   console.warn(
@@ -18,10 +22,10 @@ if (!MONGODB_URI) {
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
-let cached: MongooseCache = global.mongoose as MongooseCache
+let cached: MongooseCache = (global as any).mongoose
 
 if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null }
+  cached = (global as any).mongoose = { conn: null, promise: null }
 }
 
 async function connectDB() {

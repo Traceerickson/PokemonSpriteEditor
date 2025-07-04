@@ -36,8 +36,4 @@ const UserSchema = new Schema<IUser>(
   },
 )
 
-// Create indexes
-UserSchema.index({ email: 1 })
-UserSchema.index({ username: 1 })
-
 export default mongoose.models.User || mongoose.model<IUser>("User", UserSchema)

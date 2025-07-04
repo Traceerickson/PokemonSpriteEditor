@@ -380,7 +380,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
                 className="text-slate-300 hover:text-white"
                 onClick={onNewProject}
               >
-                Menu
+                New Project
               </Button>
               <Button
                 variant="ghost"
@@ -617,7 +617,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
                 </div>
 
                 <div className="text-sm text-slate-400">
-                  {canvasSize.width}×{canvasSize.height} • {zoom}x zoom • Frame {currentFrame + 1}
+                  {canvasSize.width}×{canvasSize.height} • {Math.round(zoom * 100)}% zoom • Frame {currentFrame + 1}
                   {project?.isAnimated && " • Animated"}
                 </div>
               </div>

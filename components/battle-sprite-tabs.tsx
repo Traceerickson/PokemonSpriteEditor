@@ -3,7 +3,6 @@
 import { useRef, useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Download, Loader2 } from "lucide-react"
 
 interface Pixel {
   x: number
@@ -14,8 +13,6 @@ interface Pixel {
 interface BattleSpriteTabsProps {
   frameData?: { [key: number]: Pixel[] }
   pokemonData?: any
-  gameVersion?: any
-  onLoadSprite?: (spriteData: any, spriteType: string) => void
 }
 
 const spriteTypes = [
@@ -28,177 +25,172 @@ const spriteTypes = [
 function SpriteCard({
   spriteType,
   spriteUrl,
-  pokemonData,
-  gameVersion,
-  onLoadSprite,
   frameData,
 }: {
   spriteType: any
   spriteUrl: string | null
-  pokemonData?: any
-  gameVersion?: any
-  onLoadSprite?: (spriteData: any, spriteType: string) => void
   frameData?: { [key: number]: Pixel[] }
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [imageError, setImageError] = useState(false)
+  const [pixelsByFrame, setPixelsByFrame] = useState<{ [key: number]: Pixel[] }>(
+    frameData || { 0: [] },
+  )
+  const [selectedColor, setSelectedColor] = useState("#000000")
+  const [canvasSize, setCanvasSize] = useState({ width: 80, height: 80 })
+  const [isDrawing, setIsDrawing] = useState(false)
 
-  // Get frame 1 data (index 0) for previews if no sprite URL
-  const frame1Pixels = frameData?.[0] || []
+  // Load sprite from URL on mount
+  useEffect(() => {
+    const load = async () => {
+      if (!spriteUrl) return
+      try {
+        const img = new Image()
+        img.crossOrigin = "anonymous"
+        await new Promise((resolve, reject) => {
+          img.onload = resolve
+          img.onerror = reject
+          img.src = spriteUrl
+        })
 
+        const c = document.createElement("canvas")
+        const ctx = c.getContext("2d")
+        if (!ctx) return
+        c.width = img.width
+        c.height = img.height
+        ctx.drawImage(img, 0, 0)
+        const imageData = ctx.getImageData(0, 0, c.width, c.height)
+        const pixels: Pixel[] = []
+        for (let y = 0; y < c.height; y++) {
+          for (let x = 0; x < c.width; x++) {
+            const idx = (y * c.width + x) * 4
+            const r = imageData.data[idx]
+            const g = imageData.data[idx + 1]
+            const b = imageData.data[idx + 2]
+            const a = imageData.data[idx + 3]
+            if (a > 0) {
+              pixels.push({ x, y, color: `rgb(${r}, ${g}, ${b})` })
+            }
+          }
+        }
+        setCanvasSize({ width: c.width, height: c.height })
+        setPixelsByFrame({ 0: pixels })
+      } catch (e) {
+        console.error("Failed to load sprite", e)
+      }
+    }
+    load()
+  }, [spriteUrl])
+
+  // Draw pixels to canvas
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-
     const ctx = canvas.getContext("2d")
     if (!ctx) return
-
-    const previewSize = 80
-
-    // Clear canvas
-    ctx.clearRect(0, 0, previewSize, previewSize)
+    const pixels = pixelsByFrame[0] || []
+    ctx.clearRect(0, 0, canvasSize.width, canvasSize.height)
     ctx.fillStyle = "#374151"
-    ctx.fillRect(0, 0, previewSize, previewSize)
+    ctx.fillRect(0, 0, canvasSize.width, canvasSize.height)
+    ctx.imageSmoothingEnabled = false
+    pixels.forEach((p) => {
+      ctx.fillStyle = p.color
+      ctx.fillRect(p.x, p.y, 1, 1)
+    })
 
-    // If we have a sprite URL, try to load it
-    if (spriteUrl && !imageError) {
-      const img = new Image()
-      img.crossOrigin = "anonymous"
-      img.onload = () => {
-        const scale = previewSize / Math.max(img.width, img.height)
-        const scaledWidth = img.width * scale
-        const scaledHeight = img.height * scale
-        const offsetX = (previewSize - scaledWidth) / 2
-        const offsetY = (previewSize - scaledHeight) / 2
-
-        ctx.imageSmoothingEnabled = false
-        ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight)
-      }
-      img.onerror = () => setImageError(true)
-      img.src = spriteUrl
-    } else if (frame1Pixels.length > 0) {
-      // Fallback to frame data if available
-      const scale = previewSize / Math.max(80, 80) // Assume 80x80 default
-      ctx.imageSmoothingEnabled = false
-      frame1Pixels.forEach((pixel) => {
-        ctx.fillStyle = pixel.color
-        const x = Math.floor(pixel.x * scale)
-        const y = Math.floor(pixel.y * scale)
-        const size = Math.max(1, Math.floor(scale))
-        ctx.fillRect(x, y, size, size)
-      })
+    // grid lines
+    ctx.strokeStyle = "#4B5563"
+    ctx.lineWidth = 0.5
+    for (let x = 0; x <= canvasSize.width; x++) {
+      ctx.beginPath()
+      ctx.moveTo(x + 0.5, 0)
+      ctx.lineTo(x + 0.5, canvasSize.height)
+      ctx.stroke()
     }
-  }, [spriteUrl, frame1Pixels, imageError])
-
-  const handleLoadSprite = async () => {
-    if (!spriteUrl || !onLoadSprite || isLoading) return
-
-    setIsLoading(true)
-    try {
-      // Load the sprite and convert to pixel data
-      const img = new Image()
-      img.crossOrigin = "anonymous"
-
-      await new Promise((resolve, reject) => {
-        img.onload = resolve
-        img.onerror = reject
-        img.src = spriteUrl
-      })
-
-      const canvas = document.createElement("canvas")
-      const ctx = canvas.getContext("2d")
-      if (!ctx) throw new Error("Could not get canvas context")
-
-      canvas.width = img.width
-      canvas.height = img.height
-      ctx.drawImage(img, 0, 0)
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const pixels = []
-
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const index = (y * canvas.width + x) * 4
-          const r = imageData.data[index]
-          const g = imageData.data[index + 1]
-          const b = imageData.data[index + 2]
-          const a = imageData.data[index + 3]
-
-          if (a > 0) {
-            const color = `rgb(${r}, ${g}, ${b})`
-            pixels.push({ x, y, color })
-          }
-        }
-      }
-
-      const spriteData = {
-        id: `${pokemonData?.name || "sprite"}-${spriteType.id}`,
-        name: `${pokemonData?.name || "Sprite"} ${spriteType.label}`,
-        category: "Battle Sprite",
-        description: `${spriteType.label} sprite`,
-        size: `${canvas.width}x${canvas.height}`,
-        pixels: pixels,
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height,
-        pokemonData: pokemonData,
-        gameVersion: gameVersion,
-      }
-
-      onLoadSprite(spriteData, spriteType.id)
-    } catch (error) {
-      console.error("Failed to load sprite:", error)
-    } finally {
-      setIsLoading(false)
+    for (let y = 0; y <= canvasSize.height; y++) {
+      ctx.beginPath()
+      ctx.moveTo(0, y + 0.5)
+      ctx.lineTo(canvasSize.width, y + 0.5)
+      ctx.stroke()
     }
+  }, [pixelsByFrame, canvasSize])
+
+  const getCoords = (e: React.MouseEvent) => {
+    const canvas = canvasRef.current
+    if (!canvas) return null
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvasSize.width / rect.width
+    const scaleY = canvasSize.height / rect.height
+    const x = Math.floor((e.clientX - rect.left) * scaleX)
+    const y = Math.floor((e.clientY - rect.top) * scaleY)
+    if (x < 0 || x >= canvasSize.width || y < 0 || y >= canvasSize.height)
+      return null
+    return { x, y }
+  }
+
+  const drawPixel = (x: number, y: number, color: string) => {
+    setPixelsByFrame((prev) => {
+      const framePixels = prev[0] || []
+      const filtered = framePixels.filter((p) => !(p.x === x && p.y === y))
+      return { ...prev, 0: [...filtered, { x, y, color }] }
+    })
+  }
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const coords = getCoords(e)
+    if (!coords) return
+    drawPixel(coords.x, coords.y, selectedColor)
+    setIsDrawing(true)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDrawing) return
+    const coords = getCoords(e)
+    if (!coords) return
+    drawPixel(coords.x, coords.y, selectedColor)
+  }
+
+  const clearCanvas = () => {
+    setPixelsByFrame({ 0: [] })
   }
 
   return (
-    <Card className={`p-3 cursor-pointer transition-all border-2 bg-slate-750 border-slate-600 hover:border-slate-500`}>
+    <Card className="p-3 border-2 bg-slate-750 border-slate-600">
       <div className="space-y-2">
-        <div className="w-full h-20 bg-slate-600 rounded flex items-center justify-center relative overflow-hidden">
-          {spriteUrl && !imageError ? (
-            <img
-              src={spriteUrl || "/placeholder.svg"}
-              alt={spriteType.label}
-              className="max-w-full max-h-full object-contain pixelated"
-              style={{ imageRendering: "pixelated" }}
-              onError={() => setImageError(true)}
-            />
-          ) : (
-            <canvas ref={canvasRef} width={80} height={80} className="rounded" />
-          )}
+        <canvas
+          ref={canvasRef}
+          width={canvasSize.width}
+          height={canvasSize.height}
+          style={{ width: 96, height: 96, imageRendering: "pixelated" }}
+          onMouseDown={handleMouseDown}
+          onMouseUp={() => setIsDrawing(false)}
+          onMouseLeave={() => setIsDrawing(false)}
+          onMouseMove={handleMouseMove}
+        />
+        <div className="flex items-center justify-between">
+          <span className="text-white font-medium text-sm">
+            {spriteType.label} Sprite
+          </span>
+          <input
+            type="color"
+            value={selectedColor}
+            onChange={(e) => setSelectedColor(e.target.value)}
+            className="w-6 h-6 p-0 border-0 bg-transparent"
+          />
         </div>
-        <div className="text-center">
-          <span className="text-white font-medium text-sm">{spriteType.label}</span>
-        </div>
-        {spriteUrl && !imageError && onLoadSprite && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full bg-green-600 border-green-600 text-white hover:bg-green-700 disabled:opacity-50 h-7 text-xs"
-            onClick={handleLoadSprite}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                Loading...
-              </>
-            ) : (
-              <>
-                <Download className="w-3 h-3 mr-1" />
-                Load
-              </>
-            )}
-          </Button>
-        )}
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full h-7 text-xs"
+          onClick={clearCanvas}
+        >
+          Clear
+        </Button>
       </div>
     </Card>
   )
 }
 
-export function BattleSpriteTabs({ frameData, pokemonData, gameVersion, onLoadSprite }: BattleSpriteTabsProps) {
+export function BattleSpriteTabs({ frameData, pokemonData }: BattleSpriteTabsProps) {
   return (
     <div>
       <h3 className="text-white font-medium mb-4">Battle Sprites</h3>
@@ -212,9 +204,6 @@ export function BattleSpriteTabs({ frameData, pokemonData, gameVersion, onLoadSp
               key={spriteType.id}
               spriteType={spriteType}
               spriteUrl={spriteUrl}
-              pokemonData={pokemonData}
-              gameVersion={gameVersion}
-              onLoadSprite={onLoadSprite}
               frameData={frameData}
             />
           )

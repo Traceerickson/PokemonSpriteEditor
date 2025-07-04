@@ -321,7 +321,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
           const pixels: Pixel[] = []
 
           for (let y = 0; y < tempCanvas.height; y++) {
-            for (let x = 0; y < tempCanvas.width; x++) {
+            for (let x = 0; x < tempCanvas.width; x++) {
               const index = (y * tempCanvas.width + x) * 4
               const r = imageData.data[index]
               const g = imageData.data[index + 1]

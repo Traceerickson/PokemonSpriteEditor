@@ -663,8 +663,6 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               <BattleSpriteTabs
                 frameData={frameData}
                 pokemonData={project?.pokemonData}
-                gameVersion={project?.gameVersion}
-                onLoadSprite={handleLoadBattleSprite}
               />
             </div>
           )}

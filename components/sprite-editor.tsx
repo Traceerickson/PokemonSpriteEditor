@@ -378,6 +378,13 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               <Button
                 variant="ghost"
                 className="text-slate-300 hover:text-white"
+                onClick={onNewProject}
+              >
+                Menu
+              </Button>
+              <Button
+                variant="ghost"
+                className="text-slate-300 hover:text-white"
                 onClick={() => onPageChange("projects")}
               >
                 Projects

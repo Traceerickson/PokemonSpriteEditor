@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Grid3X3, Loader2 } from "lucide-react"
+import { Grid3X3, Loader2, X } from "lucide-react"
 
 export function SignInForm() {
   const [email, setEmail] = useState("")
@@ -43,7 +43,15 @@ export function SignInForm() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="relative min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <Button
+        size="icon"
+        variant="ghost"
+        className="absolute top-4 left-4 text-white"
+        onClick={() => router.push("/")}
+      >
+        <X className="w-5 h-5" />
+      </Button>
       <Card className="w-full max-w-md p-8 bg-slate-800 border-slate-600">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">

@@ -33,6 +33,7 @@ import { ColorGrid } from "@/components/color-grid"
 import { ExportModal } from "@/components/export-modal"
 import { useUndoRedo } from "@/hooks/use-undo-redo"
 import type { Pixel } from "@/types/pixel"
+import type { SpriteSet, SpriteTypeKey, FrameData } from "@/types/sprite-set"
 
 interface SpriteEditorProps {
   project: any
@@ -59,47 +60,54 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   const [isSaving, setIsSaving] = useState(false)
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
 
-  // Initialize frame data with stencil data if available
-  const getInitialFrameData = () => {
-    // Handle animated sprites
+  const createEmptyFrames = (): FrameData => ({ 0: [], 1: [], 2: [], 3: [] })
+
+  // Initialize sprite set with stencil data if available
+  const getInitialSpriteSet = (): SpriteSet => {
+    const blank: SpriteSet = {
+      front: createEmptyFrames(),
+      back: createEmptyFrames(),
+      frontShiny: createEmptyFrames(),
+      backShiny: createEmptyFrames(),
+    }
+
     if (project?.isAnimated && project?.animatedFrames) {
-      return project.animatedFrames
+      blank.front = project.animatedFrames
+      return blank
     }
-    // Handle regular stencil data
+
     if (project?.stencilData?.pixels) {
-      return {
-        0: project.stencilData.pixels,
-        1: [],
-        2: [],
-        3: [],
-      }
+      const type = (project?.spriteType as SpriteTypeKey) || "front"
+      blank[type][0] = project.stencilData.pixels
     }
-    // Default blank frames
-    return {
-      0: [],
-      1: [],
-      2: [],
-      3: [],
-    }
+
+    return blank
   }
 
   // Undo/Redo system
   const {
-    state: frameData,
-    set: setFrameData,
-    reset: resetFrameData,
+    state: spriteSet,
+    set: setSpriteSet,
+    reset: resetSpriteSet,
     undo,
     redo,
     canUndo,
     canRedo,
-  } = useUndoRedo<{ [key: number]: Pixel[] }>(getInitialFrameData())
+  } = useUndoRedo<SpriteSet>(getInitialSpriteSet())
+
+  const [currentSpriteType, setCurrentSpriteType] = useState<SpriteTypeKey>(
+    (project?.spriteType as SpriteTypeKey) || "front",
+  )
+
+  const frameData = spriteSet[currentSpriteType]
 
   // Load stencil data when project changes
   useEffect(() => {
     if (project?.stencilData?.pixels || project?.animatedFrames) {
-      resetFrameData(getInitialFrameData())
+      resetSpriteSet(getInitialSpriteSet())
+      setCurrentSpriteType((project?.spriteType as SpriteTypeKey) || "front")
     }
-  }, [project, resetFrameData])
+  }, [project, resetSpriteSet])
 
   // Load Pokemon battle sprites if available
   useEffect(() => {
@@ -107,7 +115,12 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       if (!project?.pokemonData?.sprites) return
 
       const urls = spriteTypes.map((s) => project.pokemonData.sprites[s.key])
-      const loaded: { [key: number]: Pixel[] } = {}
+      const loaded: SpriteSet = {
+        front: createEmptyFrames(),
+        back: createEmptyFrames(),
+        frontShiny: createEmptyFrames(),
+        backShiny: createEmptyFrames(),
+      }
 
       for (let i = 0; i < urls.length; i++) {
         const url = urls[i]
@@ -147,19 +160,21 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               }
             }
           }
-          loaded[i] = pixels
+          const key = spriteTypes[i].id
+          loaded[key][0] = pixels
         } catch (e) {
           console.error("Failed to load sprite", e)
-          loaded[i] = []
+          // keep empty frame
         }
       }
 
-      resetFrameData({ 0: [], 1: [], 2: [], 3: [], ...loaded })
+      resetSpriteSet(loaded)
+      setCurrentSpriteType((project?.spriteType as SpriteTypeKey) || "front")
       setCurrentFrame(0)
     }
 
     loadSprites()
-  }, [project?.pokemonData, resetFrameData])
+  }, [project?.pokemonData, resetSpriteSet])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -191,10 +206,10 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   }, [undo, redo])
 
   const handleFrameDataChange = useCallback(
-    (newFrameData: { [key: number]: Pixel[] }) => {
-      setFrameData(newFrameData)
+    (newFrameData: FrameData) => {
+      setSpriteSet({ ...spriteSet, [currentSpriteType]: newFrameData })
     },
-    [setFrameData],
+    [setSpriteSet, spriteSet, currentSpriteType],
   )
 
   const handleBrushStrokeComplete = useCallback(() => {
@@ -214,7 +229,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       ...frameData,
       [currentFrame]: rotatedPixels,
     }
-    setFrameData(newFrameData)
+    setSpriteSet({ ...spriteSet, [currentSpriteType]: newFrameData })
   }
 
   const exportSpriteSheet = () => {
@@ -223,7 +238,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
     if (!ctx) return
 
     // Get frames that have pixel data
-    const framesWithData = []
+    const framesWithData = [] as number[]
     for (let i = 0; i < 4; i++) {
       const pixels = frameData[i] || []
       if (pixels.length > 0) {
@@ -283,7 +298,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         canvasWidth: canvasSize.width,
         canvasHeight: canvasSize.height,
         isAnimated: project?.isAnimated || false,
-        frameData,
+        spriteSet,
         tags: project?.tags || [],
         pokemonData: project?.pokemonData || null,
         gameVersion: project?.gameVersion || null,
@@ -316,9 +331,10 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   const handleSave = () => {
     const projectData = {
       name: project?.name || "sprite-project",
-      frameData,
+      spriteSet,
       canvasSize,
       currentFrame,
+      currentSpriteType,
       isAnimated: project?.isAnimated || false,
     }
 
@@ -346,7 +362,8 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       reader.onload = (event) => {
         try {
           const projectData = JSON.parse(event.target?.result as string)
-          setFrameData(projectData.frameData || { 0: [], 1: [], 2: [], 3: [] })
+          setSpriteSet(projectData.spriteSet || getInitialSpriteSet())
+          setCurrentSpriteType(projectData.currentSpriteType || "front")
           setCurrentFrame(projectData.currentFrame || 0)
         } catch (error) {
           console.error("Failed to load project:", error)
@@ -400,7 +417,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
             ...frameData,
             [currentFrame]: pixels,
           }
-          setFrameData(newFrameData)
+          setSpriteSet({ ...spriteSet, [currentSpriteType]: newFrameData })
         }
         img.src = event.target?.result as string
       }
@@ -409,13 +426,13 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
     input.click()
   }
 
-  const handleLoadBattleSprite = (spriteData: any, spriteType: string) => {
-    // Load the battle sprite into the current frame
+  const handleLoadBattleSprite = (spriteData: any, spriteType: SpriteTypeKey) => {
+    const targetFrames = spriteSet[spriteType]
     const newFrameData = {
-      ...frameData,
+      ...targetFrames,
       [currentFrame]: spriteData.pixels,
     }
-    setFrameData(newFrameData)
+    setSpriteSet({ ...spriteSet, [spriteType]: newFrameData })
   }
 
   return (
@@ -722,9 +739,9 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
           {!rightSidebarCollapsed && (
             <div className="p-4 overflow-y-auto flex-1">
               <BattleSpriteTabs
-                frameData={frameData}
-                currentFrame={currentFrame}
-                onFrameChange={setCurrentFrame}
+                spriteSet={spriteSet}
+                currentSprite={currentSpriteType}
+                onSpriteChange={setCurrentSpriteType}
                 canvasWidth={canvasSize.width}
                 canvasHeight={canvasSize.height}
               />

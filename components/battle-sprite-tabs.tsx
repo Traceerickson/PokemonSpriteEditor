@@ -2,27 +2,32 @@
 
 import { useRef, useEffect } from "react"
 import { Card } from "@/components/ui/card"
-
-interface Pixel {
-  x: number
-  y: number
-  color: string
-}
+import type { SpriteSet, SpriteTypeKey } from "@/types/sprite-set"
+import type { Pixel } from "@/types/pixel"
 
 export interface BattleSpriteTabsProps {
-  frameData: { [key: number]: Pixel[] }
-  currentFrame: number
-  onFrameChange: (frame: number) => void
+  spriteSet: SpriteSet
+  currentSprite: SpriteTypeKey
+  onSpriteChange: (sprite: SpriteTypeKey) => void
   canvasWidth: number
   canvasHeight: number
 }
 
-export const spriteTypes = [
-  { id: 0, label: "Front", key: "front_default" },
-  { id: 1, label: "Back", key: "back_default" },
-  { id: 2, label: "Front Shiny", key: "front_shiny" },
-  { id: 3, label: "Back Shiny", key: "back_shiny" },
+export const spriteTypes: Array<{ id: SpriteTypeKey; label: string; key: string }> = [
+  { id: "front", label: "Front", key: "front_default" },
+  { id: "back", label: "Back", key: "back_default" },
+  { id: "frontShiny", label: "Front Shiny", key: "front_shiny" },
+  { id: "backShiny", label: "Back Shiny", key: "back_shiny" },
 ]
+
+interface SpritePreviewProps {
+  label: string
+  pixels: Pixel[]
+  active: boolean
+  onClick: () => void
+  canvasWidth: number
+  canvasHeight: number
+}
 
 function SpritePreview({
   label,
@@ -31,14 +36,7 @@ function SpritePreview({
   onClick,
   canvasWidth,
   canvasHeight,
-}: {
-  label: string
-  pixels: Pixel[]
-  active: boolean
-  onClick: () => void
-  canvasWidth: number
-  canvasHeight: number
-}) {
+}: SpritePreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -76,9 +74,9 @@ function SpritePreview({
 }
 
 export function BattleSpriteTabs({
-  frameData,
-  currentFrame,
-  onFrameChange,
+  spriteSet,
+  currentSprite,
+  onSpriteChange,
   canvasWidth,
   canvasHeight,
 }: BattleSpriteTabsProps) {
@@ -90,9 +88,9 @@ export function BattleSpriteTabs({
           <SpritePreview
             key={sprite.id}
             label={sprite.label}
-            pixels={frameData[sprite.id] || []}
-            active={currentFrame === sprite.id}
-            onClick={() => onFrameChange(sprite.id)}
+            pixels={spriteSet[sprite.id][0] || []}
+            active={currentSprite === sprite.id}
+            onClick={() => onSpriteChange(sprite.id)}
             canvasWidth={canvasWidth}
             canvasHeight={canvasHeight}
           />

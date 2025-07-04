@@ -36,6 +36,7 @@ export default function Home() {
           // For animated sprites, we'll populate frames with extracted data
           pixels: [], // Frame 0 will be populated from animatedFrames
         },
+        spriteType: spriteData.spriteType,
         isAnimated: true,
         originalSpriteUrl: spriteData.spriteUrl,
         animatedFrames: spriteData.animatedFrames,
@@ -53,6 +54,7 @@ export default function Home() {
         },
         dimensions: { width: spriteData.canvasWidth, height: spriteData.canvasHeight },
         stencilData: spriteData,
+        spriteType: spriteData.spriteType,
       }
       setCurrentProject(projectData)
     }

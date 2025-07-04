@@ -27,7 +27,7 @@ import {
   Loader2,
 } from "lucide-react"
 import { SpriteCanvas } from "@/components/sprite-canvas"
-import { BattleSpriteTabs } from "@/components/battle-sprite-tabs"
+import { BattleSpriteTabs, spriteTypes } from "@/components/battle-sprite-tabs"
 import { FrameNavigator } from "@/components/frame-navigator"
 import { ColorGrid } from "@/components/color-grid"
 import { ExportModal } from "@/components/export-modal"
@@ -74,6 +74,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         3: [],
       }
     }
+    // Default blank frames
     return {
       0: [],
       1: [],
@@ -99,6 +100,66 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       resetFrameData(getInitialFrameData())
     }
   }, [project, resetFrameData])
+
+  // Load Pokemon battle sprites if available
+  useEffect(() => {
+    const loadSprites = async () => {
+      if (!project?.pokemonData?.sprites) return
+
+      const urls = spriteTypes.map((s) => project.pokemonData.sprites[s.key])
+      const loaded: { [key: number]: Pixel[] } = {}
+
+      for (let i = 0; i < urls.length; i++) {
+        const url = urls[i]
+        if (!url) {
+          loaded[i] = []
+          continue
+        }
+        try {
+          const img = new Image()
+          img.crossOrigin = "anonymous"
+          await new Promise((res, rej) => {
+            img.onload = res
+            img.onerror = rej
+            img.src = url
+          })
+
+          const c = document.createElement("canvas")
+          const ctx = c.getContext("2d")
+          if (!ctx) continue
+          c.width = img.width
+          c.height = img.height
+          ctx.drawImage(img, 0, 0)
+          const imageData = ctx.getImageData(0, 0, c.width, c.height)
+          const data = imageData.data
+          const width = imageData.width
+          const height = imageData.height
+          const pixels: Pixel[] = []
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4
+              const r = data[idx]
+              const g = data[idx + 1]
+              const b = data[idx + 2]
+              const a = data[idx + 3]
+              if (a > 0) {
+                pixels.push({ x, y, color: `rgb(${r}, ${g}, ${b})` })
+              }
+            }
+          }
+          loaded[i] = pixels
+        } catch (e) {
+          console.error("Failed to load sprite", e)
+          loaded[i] = []
+        }
+      }
+
+      resetFrameData({ 0: [], 1: [], 2: [], 3: [], ...loaded })
+      setCurrentFrame(0)
+    }
+
+    loadSprites()
+  }, [project?.pokemonData, resetFrameData])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -662,7 +723,10 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
             <div className="p-4 overflow-y-auto flex-1">
               <BattleSpriteTabs
                 frameData={frameData}
-                pokemonData={project?.pokemonData}
+                currentFrame={currentFrame}
+                onFrameChange={setCurrentFrame}
+                canvasWidth={canvasSize.width}
+                canvasHeight={canvasSize.height}
               />
             </div>
           )}

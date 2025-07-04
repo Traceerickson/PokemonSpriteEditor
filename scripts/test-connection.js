@@ -1,5 +1,31 @@
 // Test script to verify MongoDB connection
+const fs = require("fs")
+const path = require("path")
 const mongoose = require("mongoose")
+
+function loadEnv() {
+  const envPath = path.resolve(__dirname, "..", ".env")
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/)
+    for (const line of lines) {
+      const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)\s*$/)
+      if (match) {
+        let [, key, value] = match
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.slice(1, -1)
+        }
+        if (!process.env[key]) {
+          process.env[key] = value
+        }
+      }
+    }
+  }
+}
+
+loadEnv()
 
 async function testConnection() {
   try {

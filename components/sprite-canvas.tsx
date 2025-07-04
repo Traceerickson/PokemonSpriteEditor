@@ -3,6 +3,7 @@
 import type React from "react"
 import { useRef, useEffect, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
 
 interface SpriteCanvasProps {
   width: number
@@ -443,24 +444,17 @@ export function SpriteCanvas({
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onZoomChange?.(Math.max(1, zoom - 1))}
-            className="bg-slate-700 border-slate-600 text-white"
-          >
-            -
-          </Button>
-          <span className="text-sm text-slate-400 min-w-[60px] text-center">{zoom}x</span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onZoomChange?.(Math.min(20, zoom + 1))}
-            className="bg-slate-700 border-slate-600 text-white"
-          >
-            +
-          </Button>
+        <div className="flex items-center gap-2 w-48">
+          <Slider
+            min={0.5}
+            max={3}
+            step={0.1}
+            value={[zoom]}
+            onValueChange={(v) => onZoomChange?.(v[0])}
+          />
+          <span className="text-sm text-slate-400 w-14 text-right">
+            {Math.round(zoom * 100)}%
+          </span>
         </div>
         <div className="text-xs text-slate-500">Shift+Drag to pan • Shift+Scroll to pan • Arrow keys to navigate</div>
       </div>

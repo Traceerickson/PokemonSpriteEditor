@@ -69,7 +69,7 @@ function PokemonCard({
           selectedSprite,
           spriteOptions,
         )
-        onLoadSprite(spriteData)
+        onLoadSprite({ ...spriteData, spriteType: selectedSprite })
         return
       }
 
@@ -120,6 +120,7 @@ function PokemonCard({
         canvasHeight: canvas.height,
         pokemonData: pokemon,
         gameVersion: gameVersion,
+        spriteType: selectedSprite,
       }
 
       onLoadSprite(spriteData)
@@ -298,6 +299,7 @@ async function extractAnimatedFrames(
         2: [], // Third frame
         3: [], // Fourth frame
       },
+      spriteType: selectedSprite,
     }
 
     return spriteData

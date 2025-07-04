@@ -21,7 +21,11 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          await connectDB()
+          const db = await connectDB()
+          if (!db) {
+            console.error("Database not configured")
+            return null
+          }
 
           const user = await User.findOne({
             email: credentials.email.toLowerCase(),

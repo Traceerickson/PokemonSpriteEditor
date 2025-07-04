@@ -20,7 +20,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Username must be between 3 and 20 characters" }, { status: 400 })
     }
 
-    await connectDB()
+    const db = await connectDB()
+    if (!db) {
+      return NextResponse.json({ error: "Database not configured" }, { status: 500 })
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({

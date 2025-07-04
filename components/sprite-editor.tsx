@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { useSession } from "next-auth/react"
+import { useSession, signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import {
   Download,
   Upload,
@@ -41,6 +42,7 @@ interface SpriteEditorProps {
 
 export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEditorProps) {
   const { data: session } = useSession()
+  const router = useRouter()
   const [selectedTool, setSelectedTool] = useState("pencil")
   const [zoom, setZoom] = useState(1)
   const [canvasSize] = useState({
@@ -394,6 +396,23 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
           </div>
 
           <div className="flex items-center gap-3">
+            {session?.user ? (
+              <Button
+                variant="ghost"
+                className="text-slate-300 hover:text-white"
+                onClick={() => signOut()}
+              >
+                Sign Out
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                className="text-slate-300 hover:text-white"
+                onClick={() => router.push("/auth/signin")}
+              >
+                Sign In
+              </Button>
+            )}
             <Button variant="outline" className="bg-slate-700 border-slate-600 text-white" onClick={handleImport}>
               <Upload className="w-4 h-4 mr-2" />
               Import

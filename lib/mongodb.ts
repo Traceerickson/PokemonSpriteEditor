@@ -1,6 +1,11 @@
 import mongoose from "mongoose"
 
-const MONGODB_URI = process.env.MONGODB_URI!
+interface MongooseCache {
+  conn: typeof mongoose | null
+  promise: Promise<typeof mongoose> | null
+}
+
+const MONGODB_URI = process.env.MONGODB_URI || ""
 
 if (!MONGODB_URI) {
   throw new Error("Please define the MONGODB_URI environment variable inside .env.local")
@@ -11,7 +16,7 @@ if (!MONGODB_URI) {
  * in development. This prevents connections growing exponentially
  * during API Route usage.
  */
-let cached = global.mongoose
+let cached: MongooseCache = global.mongoose as MongooseCache
 
 if (!cached) {
   cached = global.mongoose = { conn: null, promise: null }

@@ -7,7 +7,7 @@ This project uses MongoDB for storing projects and user accounts. To enable data
 1. Create a MongoDB database using [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) or a local MongoDB server.
 2. Copy the connection URI, for example:
    `mongodb+srv://<user>:<password>@cluster0.mongodb.net/<database>?retryWrites=true&w=majority`
-3. Create a `.env.local` file in the project root and add:
+3. Copy `.env.example` to `.env` in the project root and set your values:
    `MONGODB_URI=your-connection-string`
 4. Restart the development server with `npm run dev`.
 

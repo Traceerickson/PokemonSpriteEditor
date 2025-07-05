@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { Grid3X3, Download, Search, Loader2, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { usePokemonPage, usePokemonSearch, gameVersions, type GameVersion } from "@/hooks/use-pokemon-api"
+import type { Pixel } from "@/types/pixel"
 
 interface SpriteRepositoryPageProps {
   onPageChange: (page: "studio" | "projects" | "stencils") => void
@@ -56,70 +57,82 @@ function PokemonCard({
     spriteOptions.find((option) => option.key === selectedSprite)?.sprite || pokemon.sprites.front_default
 
   const handleLoadSprite = async () => {
-    if (!currentSprite || !onLoadSprite || isLoading) return
+    if (!onLoadSprite || isLoading) return
 
     setIsLoading(true)
     try {
-      // For animated sprites, extract frames
-      if (gameVersion.animated) {
-        const spriteData = await extractAnimatedFrames(
-          currentSprite,
-          pokemon,
-          gameVersion,
-          selectedSprite,
-          spriteOptions,
-        )
-        onLoadSprite({ ...spriteData, spriteType: selectedSprite })
-        return
+      const createFrames = () => ({ 0: [], 1: [], 2: [], 3: [] })
+      const spriteSet = {
+        front: createFrames(),
+        back: createFrames(),
+        frontShiny: createFrames(),
+        backShiny: createFrames(),
       }
 
-      // For static sprites, convert to pixel data
-      const img = new Image()
-      img.crossOrigin = "anonymous"
+      const keyMap: Record<string, keyof typeof spriteSet> = {
+        front: "front",
+        back: "back",
+        front_shiny: "frontShiny",
+        back_shiny: "backShiny",
+      }
 
-      await new Promise((resolve, reject) => {
-        img.onload = resolve
-        img.onerror = reject
-        img.src = currentSprite
-      })
+      let canvasWidth = 0
+      let canvasHeight = 0
 
-      const canvas = document.createElement("canvas")
-      const ctx = canvas.getContext("2d")
-      if (!ctx) throw new Error("Could not get canvas context")
+      for (const option of spriteOptions) {
+        const url = option.sprite
+        if (!url) continue
 
-      canvas.width = img.width
-      canvas.height = img.height
-      ctx.drawImage(img, 0, 0)
+        const img = new Image()
+        img.crossOrigin = "anonymous"
+        await new Promise((resolve, reject) => {
+          img.onload = resolve
+          img.onerror = reject
+          img.src = url
+        })
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const pixels = []
+        const canvas = document.createElement("canvas")
+        const ctx = canvas.getContext("2d")
+        if (!ctx) continue
 
-      for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-          const index = (y * canvas.width + x) * 4
-          const r = imageData.data[index]
-          const g = imageData.data[index + 1]
-          const b = imageData.data[index + 2]
-          const a = imageData.data[index + 3]
+        canvas.width = img.width
+        canvas.height = img.height
+        ctx.drawImage(img, 0, 0)
 
-          if (a > 0) {
-            const color = `rgb(${r}, ${g}, ${b})`
-            pixels.push({ x, y, color })
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        const pixels: Pixel[] = []
+
+        for (let y = 0; y < canvas.height; y++) {
+          for (let x = 0; x < canvas.width; x++) {
+            const index = (y * canvas.width + x) * 4
+            const r = imageData.data[index]
+            const g = imageData.data[index + 1]
+            const b = imageData.data[index + 2]
+            const a = imageData.data[index + 3]
+
+            if (a > 0) {
+              const color = `rgb(${r}, ${g}, ${b})`
+              pixels.push({ x, y, color })
+            }
           }
+        }
+
+        spriteSet[keyMap[option.key]][0] = pixels
+        if (!canvasWidth || !canvasHeight) {
+          canvasWidth = canvas.width
+          canvasHeight = canvas.height
         }
       }
 
       const spriteData = {
-        id: `pokemon-${pokemon.id}-${selectedSprite}-${gameVersion.id}`,
-        name: `${pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)} (${gameVersion.name} - ${spriteOptions.find((opt) => opt.key === selectedSprite)?.label})`,
-        category: "Pokemon",
-        description: `Official ${pokemon.name} sprite from ${gameVersion.name}`,
-        size: `${canvas.width}x${canvas.height}`,
-        pixels: pixels,
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height,
+        id: `pokemon-${pokemon.id}-${gameVersion.id}`,
+        name: `${pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)} (${gameVersion.name})`,
+        description: `Official ${pokemon.name} sprites from ${gameVersion.name}`,
+        canvasWidth,
+        canvasHeight,
         pokemonData: pokemon,
         gameVersion: gameVersion,
+        spriteSet,
         spriteType: selectedSprite,
       }
 

@@ -13,6 +13,7 @@ export interface IProject extends Document {
   canvasHeight: number
   isAnimated: boolean
   frames: Frame[]
+  spriteSet: any
   tags: string[]
   pokemonData: any
   gameVersion: any
@@ -37,6 +38,7 @@ const ProjectSchema = new Schema<IProject>(
     canvasHeight: { type: Number, required: true },
     isAnimated: { type: Boolean, default: false },
     frames: [FrameSchema],
+    spriteSet: { type: Schema.Types.Mixed, default: null },
     tags: { type: [String], default: [] },
     pokemonData: { type: Schema.Types.Mixed, default: null },
     gameVersion: { type: Schema.Types.Mixed, default: null },

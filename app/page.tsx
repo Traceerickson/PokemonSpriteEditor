@@ -108,11 +108,15 @@ export default function Home() {
       if (!res.ok) throw new Error('Failed to load project')
       const data = await res.json()
       const project = data.project
-      if (project.frameData) {
+      const spriteSet = project.spriteSet || project.frameData
+      if (spriteSet) {
         setCurrentProject({
           name: project.name,
-          dimensions: { width: project.canvasWidth, height: project.canvasHeight },
-          spriteSet: project.frameData,
+          dimensions: {
+            width: project.canvasWidth,
+            height: project.canvasHeight,
+          },
+          spriteSet,
           tags: project.tags,
         })
         setCurrentPage('studio')

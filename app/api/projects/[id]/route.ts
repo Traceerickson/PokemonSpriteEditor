@@ -35,11 +35,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       })
     }
 
+    const spriteSet = project.spriteSet || null
+
     return NextResponse.json({
       project: {
         ...project,
         id: project._id,
         frameData,
+        spriteSet,
       },
     })
   } catch (error) {
@@ -59,18 +62,19 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Invalid project ID" }, { status: 400 })
     }
 
-    const { name, description, frameData, tags } = await request.json()
+    const { name, description, frameData, spriteSet, tags } = await request.json()
 
     await connectDB()
 
-    // Convert frameData object to frames array
-    const frames = []
-    if (frameData) {
-      for (const [frameNumber, pixels] of Object.entries(frameData)) {
+    // Convert provided data to frames array (for legacy preview usage)
+    const frames: any[] = []
+    const sourceData: any = frameData || (spriteSet ? spriteSet.front : null)
+    if (sourceData) {
+      for (const [frameNumber, pixels] of Object.entries(sourceData)) {
         if (Array.isArray(pixels) && pixels.length > 0) {
           frames.push({
             frameNumber: Number.parseInt(frameNumber),
-            pixels: pixels,
+            pixels,
           })
         }
       }
@@ -82,6 +86,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         name,
         description,
         frames,
+        spriteSet: spriteSet || null,
         tags: tags || [],
         updatedAt: new Date(),
       },

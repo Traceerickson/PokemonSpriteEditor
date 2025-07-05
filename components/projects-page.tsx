@@ -10,9 +10,10 @@ import { Grid3X3, Plus, FolderOpen, Clock, Star, Loader2 } from "lucide-react"
 interface ProjectsPageProps {
   onPageChange: (page: "studio" | "projects" | "stencils") => void
   onNewProject: () => void
+  onProjectSelect: (id: string) => void
 }
 
-export function ProjectsPage({ onPageChange, onNewProject }: ProjectsPageProps) {
+export function ProjectsPage({ onPageChange, onNewProject, onProjectSelect }: ProjectsPageProps) {
   const { data: session } = useSession()
   const router = useRouter()
   const [projects, setProjects] = useState<any[]>([])
@@ -190,6 +191,7 @@ export function ProjectsPage({ onPageChange, onNewProject }: ProjectsPageProps) 
                 <Card
                   key={project.id || project._id}
                   className="p-4 bg-slate-800 border-slate-600 hover:border-slate-500 cursor-pointer transition-all"
+                  onClick={() => onProjectSelect(project.id || project._id)}
                 >
                   <div className="space-y-3">
                     <div className="w-full h-16 bg-slate-700 rounded flex items-center justify-center">

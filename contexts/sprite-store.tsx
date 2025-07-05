@@ -38,29 +38,29 @@ const SpriteStoreContext = createContext<SpriteStoreContextValue | undefined>(un
 export function SpriteStoreProvider({ children }: { children: React.ReactNode }) {
   const [store, setStore] = useState<SpriteStore>(defaultStore)
 
-  const setCurrentSpriteType = (type: SpriteTypeKey) => {
+  const setCurrentSpriteType = React.useCallback((type: SpriteTypeKey) => {
     setStore((s) => ({ ...s, currentSpriteType: type }))
-  }
+  }, [])
 
-  const setCurrentFrame = (frame: number) => {
+  const setCurrentFrame = React.useCallback((frame: number) => {
     setStore((s) => ({ ...s, currentFrame: frame }))
-  }
+  }, [])
 
-  const setZoom = (z: number) => {
+  const setZoom = React.useCallback((z: number) => {
     setStore((s) => ({ ...s, zoom: z }))
-  }
+  }, [])
 
-  const updateFrame = (pixels: Pixel[]) => {
+  const updateFrame = React.useCallback((pixels: Pixel[]) => {
     setStore((s) => {
       const frameData = s[s.currentSpriteType]
       const updated: FrameData = { ...frameData, [s.currentFrame]: pixels }
       return { ...s, [s.currentSpriteType]: updated }
     })
-  }
+  }, [])
 
-  const replaceStore = (newStore: SpriteStore) => {
+  const replaceStore = React.useCallback((newStore: SpriteStore) => {
     setStore(newStore)
-  }
+  }, [])
 
   return (
     <SpriteStoreContext.Provider

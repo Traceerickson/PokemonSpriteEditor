@@ -534,7 +534,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       if (!file) return
 
       const reader = new FileReader()
-      reader.onload = (event) => {
+      reader.onload = () => {
         const img = new Image()
         img.onload = () => {
           const tempCanvas = document.createElement("canvas")
@@ -566,7 +566,9 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
 
           applyPixelsToFrame(pixels, currentSpriteType, currentFrame)
         }
-        img.src = event.target?.result as string
+        if (reader.result) {
+          img.src = reader.result as string
+        }
       }
       reader.readAsDataURL(file)
     }

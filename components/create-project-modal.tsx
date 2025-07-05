@@ -64,11 +64,13 @@ const templates: ProjectTemplate[] = [
 ]
 
 interface CreateProjectModalProps {
+  isOpen: boolean
   onCreateProject: (projectData: any) => void
   onCancel: () => void
 }
 
-export function CreateProjectModal({ onCreateProject, onCancel }: CreateProjectModalProps) {
+export function CreateProjectModal({ isOpen, onCreateProject, onCancel }: CreateProjectModalProps) {
+  if (!isOpen) return null
   const [selectedTemplate, setSelectedTemplate] = useState("overworld-ds")
   const [projectName, setProjectName] = useState("My Awesome Game Sprite")
 
@@ -82,7 +84,7 @@ export function CreateProjectModal({ onCreateProject, onCancel }: CreateProjectM
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-slate-800 rounded-lg p-8 w-full max-w-4xl">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-white mb-2">Create New Project</h1>

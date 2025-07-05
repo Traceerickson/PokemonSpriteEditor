@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
         ...project,
         id: project._id,
         frameCount: project.frames?.length || 0,
+        previewPixels:
+          project.frames?.find((f: any) => f.frameNumber === 0)?.pixels || [],
       })),
       pagination: {
         page,

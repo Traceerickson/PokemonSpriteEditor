@@ -134,29 +134,40 @@ export default function Home() {
     )
   }
 
-  if (showCreateModal) {
-    return <CreateProjectModal onCreateProject={handleCreateProject} onCancel={() => setShowCreateModal(false)} />
-  }
-
+  let pageContent: JSX.Element | null = null
   if (currentPage === "projects") {
-    return (
+    pageContent = (
       <ProjectsPage
         onPageChange={handlePageChange}
         onNewProject={() => setShowCreateModal(true)}
         onProjectSelect={handleProjectSelect}
       />
     )
-  }
-
-  if (currentPage === "stencils") {
-    return <SpriteRepositoryPage onPageChange={handlePageChange} onLoadSprite={handleLoadSprite} />
+  } else if (currentPage === "stencils") {
+    pageContent = (
+      <SpriteRepositoryPage
+        onPageChange={handlePageChange}
+        onLoadSprite={handleLoadSprite}
+      />
+    )
+  } else {
+    pageContent = (
+      <SpriteEditor
+        project={currentProject}
+        onNewProject={() => setShowCreateModal(true)}
+        onPageChange={handlePageChange}
+      />
+    )
   }
 
   return (
-    <SpriteEditor
-      project={currentProject}
-      onNewProject={() => setShowCreateModal(true)}
-      onPageChange={handlePageChange}
-    />
+    <>
+      {pageContent}
+      <CreateProjectModal
+        isOpen={showCreateModal}
+        onCreateProject={handleCreateProject}
+        onCancel={() => setShowCreateModal(false)}
+      />
+    </>
   )
 }

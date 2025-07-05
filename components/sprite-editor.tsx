@@ -71,6 +71,15 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       backShiny: createEmptyFrames(),
     }
 
+    if (project?.spriteSet) {
+      return {
+        front: project.spriteSet.front || createEmptyFrames(),
+        back: project.spriteSet.back || createEmptyFrames(),
+        frontShiny: project.spriteSet.frontShiny || createEmptyFrames(),
+        backShiny: project.spriteSet.backShiny || createEmptyFrames(),
+      }
+    }
+
     if (project?.isAnimated && project?.animatedFrames) {
       blank.front = project.animatedFrames
       return blank
@@ -103,7 +112,11 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
 
   // Load stencil data when project changes
   useEffect(() => {
-    if (project?.stencilData?.pixels || project?.animatedFrames) {
+    if (
+      project?.stencilData?.pixels ||
+      project?.animatedFrames ||
+      project?.spriteSet
+    ) {
       resetSpriteSet(getInitialSpriteSet())
       setCurrentSpriteType((project?.spriteType as SpriteTypeKey) || "front")
     }

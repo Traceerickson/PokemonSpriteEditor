@@ -20,8 +20,23 @@ export default function Home() {
   }
 
   const handleLoadSprite = (spriteData: any) => {
-    // Handle animated sprites with frame extraction
-    if (spriteData.isAnimated) {
+    if (spriteData.spriteSet) {
+      const projectData = {
+        name: spriteData.name,
+        template: {
+          id: spriteData.id,
+          name: spriteData.name,
+          description: spriteData.description,
+          dimensions: { width: spriteData.canvasWidth, height: spriteData.canvasHeight },
+        },
+        dimensions: { width: spriteData.canvasWidth, height: spriteData.canvasHeight },
+        spriteSet: spriteData.spriteSet,
+        spriteType: spriteData.spriteType,
+        pokemonData: spriteData.pokemonData,
+        gameVersion: spriteData.gameVersion,
+      }
+      setCurrentProject(projectData)
+    } else if (spriteData.isAnimated) {
       const projectData = {
         name: spriteData.name,
         template: {

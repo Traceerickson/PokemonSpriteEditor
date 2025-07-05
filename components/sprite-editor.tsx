@@ -28,6 +28,8 @@ import {
   Cloud,
   Loader2,
 } from "lucide-react"
+import axios from 'axios'
+import { toast } from '@/hooks/use-toast'
 import { SpriteCanvas } from "@/components/sprite-canvas"
 import { BattleSpriteTabs, spriteTypes } from "@/components/battle-sprite-tabs"
 import { FrameNavigator } from "@/components/frame-navigator"
@@ -70,6 +72,18 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   const [showUnsavedModal, setShowUnsavedModal] = useState(false)
   const [lastSaved, setLastSaved] = useState<SpriteSet | null>(null)
   const [hasUnsaved, setHasUnsaved] = useState(false)
+
+  const onSaveProject = () => {
+    const spriteData = store
+    const projectName = project?.name || 'Untitled Project'
+
+    axios
+      .post('/api/projects', { name: projectName, spriteData })
+      .then(() => {
+        toast({ title: 'Project saved!' })
+      })
+      .catch(() => toast({ title: 'Save failed', variant: 'destructive' }))
+  }
 
   const handleNewProjectClick = () => {
     if (hasUnsaved) {
@@ -1005,9 +1019,9 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         canvasWidth={canvasSize.width}
         canvasHeight={canvasSize.height}
         onCancel={() => setShowSaveModal(false)}
-        onSave={(n, t) => {
+        onSave={() => {
           setShowSaveModal(false)
-          handleSaveToCloud(n, t)
+          onSaveProject()
         }}
       />
       <LoginRequiredModal

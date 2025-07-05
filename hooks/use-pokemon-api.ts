@@ -254,7 +254,7 @@ export function usePokemonSearch(query: string, gameVersion: GameVersion) {
 
     const debounceTimer = setTimeout(searchPokemon, 800)
     return () => clearTimeout(debounceTimer)
-  }, [query, gameVersion, searchCache])
+  }, [query, gameVersion])
 
   return { results, loading, error }
 }

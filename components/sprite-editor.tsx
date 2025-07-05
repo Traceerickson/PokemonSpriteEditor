@@ -417,6 +417,20 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
     input.click()
   }
 
+  const applyPixelsToFrame = useCallback(
+    (pixels: Pixel[], spriteType: SpriteTypeKey, frame: number) => {
+      setSpriteSet((prev) => ({
+        ...prev,
+        [spriteType]: { ...prev[spriteType], [frame]: pixels },
+      }))
+
+      if (spriteType === currentSpriteType && frame === currentFrame) {
+        updateFrame(pixels)
+      }
+    },
+    [setSpriteSet, updateFrame, currentSpriteType, currentFrame],
+  )
+
   const handleImport = () => {
     const input = document.createElement("input")
     input.type = "file"
@@ -456,12 +470,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
             }
           }
 
-          const newFrameData = {
-            ...frameData,
-            [currentFrame]: pixels,
-          }
-          setSpriteSet({ ...spriteSet, [currentSpriteType]: newFrameData })
-          updateFrame(pixels)
+          applyPixelsToFrame(pixels, currentSpriteType, currentFrame)
         }
         img.src = event.target?.result as string
       }
@@ -471,15 +480,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   }
 
   const handleLoadBattleSprite = (spriteData: any, spriteType: SpriteTypeKey) => {
-    const targetFrames = spriteSet[spriteType]
-    const newFrameData = {
-      ...targetFrames,
-      [currentFrame]: spriteData.pixels,
-    }
-    setSpriteSet({ ...spriteSet, [spriteType]: newFrameData })
-    if (spriteType === currentSpriteType) {
-      updateFrame(spriteData.pixels)
-    }
+    applyPixelsToFrame(spriteData.pixels, spriteType, currentFrame)
   }
 
   useEffect(() => {

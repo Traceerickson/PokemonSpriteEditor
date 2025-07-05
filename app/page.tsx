@@ -28,12 +28,20 @@ export default function Home() {
         backShiny: { ...currentProject.spriteSet.backShiny },
       }
 
-      ;(Object.keys(spriteData.targets) as Array<keyof typeof newSet>).forEach((type) => {
-        const frames: number[] = spriteData.targets[type]
-        if (!frames || frames.length === 0) return
+      const selectedTypes = (
+        Object.keys(spriteData.targets) as Array<keyof typeof newSet>
+      ).filter((t) => (spriteData.targets[t] || []).length > 0)
+
+      const selectedFrames = Array.from(
+        new Set(
+          selectedTypes.flatMap((t) => spriteData.targets[t] as number[]),
+        ),
+      )
+
+      selectedTypes.forEach((type) => {
         const pixels = spriteData.spriteSet[type][0] || []
-        frames.forEach((f: number) => {
-          newSet[type][f] = pixels
+        selectedFrames.forEach((frameIdx) => {
+          newSet[type][frameIdx] = pixels
         })
       })
 

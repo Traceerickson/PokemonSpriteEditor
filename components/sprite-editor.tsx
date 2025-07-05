@@ -1026,9 +1026,9 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         canvasWidth={canvasSize.width}
         canvasHeight={canvasSize.height}
         onCancel={() => setShowSaveModal(false)}
-        onSave={() => {
+        onSave={(name, tags) => {
           setShowSaveModal(false)
-          onSaveProject()
+          handleSaveToCloud(name, tags)
         }}
       />
       <LoginRequiredModal

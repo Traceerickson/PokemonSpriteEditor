@@ -1,16 +1,53 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Grid3X3, Plus, FolderOpen, Clock, Star, Loader2 } from "lucide-react"
+import type { Pixel } from "@/types/pixel"
 
 interface ProjectsPageProps {
   onPageChange: (page: "studio" | "projects" | "stencils") => void
   onNewProject: () => void
   onProjectSelect: (id: string) => void
+}
+
+function ProjectPreview({
+  pixels,
+  width,
+  height,
+}: {
+  pixels: Pixel[]
+  width: number
+  height: number
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const size = 48
+    const scale = size / Math.max(width, height)
+    ctx.clearRect(0, 0, size, size)
+    ctx.fillStyle = "#374151"
+    ctx.fillRect(0, 0, size, size)
+    ctx.imageSmoothingEnabled = false
+
+    pixels.forEach((p) => {
+      ctx.fillStyle = p.color
+      const x = Math.floor(p.x * scale)
+      const y = Math.floor(p.y * scale)
+      const pxSize = Math.max(1, Math.floor(scale))
+      ctx.fillRect(x, y, pxSize, pxSize)
+    })
+  }, [pixels, width, height])
+
+  return <canvas ref={canvasRef} width={48} height={48} className="rounded" />
 }
 
 export function ProjectsPage({ onPageChange, onNewProject, onProjectSelect }: ProjectsPageProps) {
@@ -194,11 +231,16 @@ export function ProjectsPage({ onPageChange, onNewProject, onProjectSelect }: Pr
                   onClick={() => onProjectSelect(project.id || project._id)}
                 >
                   <div className="space-y-3">
-                    <div className="w-full h-16 bg-slate-700 rounded flex items-center justify-center">
-                      <div className="text-slate-400 text-xs">
+                    <div className="flex flex-col items-center justify-center">
+                      <ProjectPreview
+                        pixels={project.previewPixels || []}
+                        width={project.canvasWidth}
+                        height={project.canvasHeight}
+                      />
+                      <span className="text-slate-400 text-xs mt-1">
                         {project.canvasWidth}×{project.canvasHeight}
                         {project.isAnimated && " • Animated"}
-                      </div>
+                      </span>
                     </div>
                     <div>
                       <h3 className="font-medium text-white truncate">{project.name}</h3>

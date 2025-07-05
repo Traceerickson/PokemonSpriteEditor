@@ -34,6 +34,7 @@ import { ExportModal } from "@/components/export-modal"
 import { useUndoRedo } from "@/hooks/use-undo-redo"
 import type { Pixel } from "@/types/pixel"
 import type { SpriteSet, SpriteTypeKey, FrameData } from "@/types/sprite-set"
+import { useSpriteStore } from "@/contexts/sprite-store"
 
 interface SpriteEditorProps {
   project: any
@@ -44,6 +45,7 @@ interface SpriteEditorProps {
 export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEditorProps) {
   const { data: session } = useSession()
   const router = useRouter()
+  const { store, setCurrentSpriteType: setStoreSpriteType, setCurrentFrame: setStoreFrame, updateFrame, replaceStore } = useSpriteStore()
   const [selectedTool, setSelectedTool] = useState("pencil")
   const [zoom, setZoom] = useState(1)
   const [canvasSize] = useState({
@@ -51,7 +53,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
     height: project?.dimensions?.height || 80,
   })
   const [selectedColor, setSelectedColor] = useState("#000000")
-  const [currentFrame, setCurrentFrame] = useState(0)
+  const [currentFrame, setCurrentFrame] = useState(store.currentFrame)
   const [showGrid, setShowGrid] = useState(true)
   const [showColorGrid, setShowColorGrid] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -94,6 +96,13 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   }
 
   // Undo/Redo system
+  const initialSpriteSet: SpriteSet = {
+    front: store.front,
+    back: store.back,
+    frontShiny: store.frontShiny,
+    backShiny: store.backShiny,
+  }
+
   const {
     state: spriteSet,
     set: setSpriteSet,
@@ -102,25 +111,33 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
     redo,
     canUndo,
     canRedo,
-  } = useUndoRedo<SpriteSet>(getInitialSpriteSet())
+  } = useUndoRedo<SpriteSet>(initialSpriteSet)
 
   const [currentSpriteType, setCurrentSpriteType] = useState<SpriteTypeKey>(
-    (project?.spriteType as SpriteTypeKey) || "front",
+    store.currentSpriteType,
   )
 
   const frameData = spriteSet[currentSpriteType]
 
   // Load stencil data when project changes
   useEffect(() => {
-    if (
-      project?.stencilData?.pixels ||
-      project?.animatedFrames ||
-      project?.spriteSet
-    ) {
-      resetSpriteSet(getInitialSpriteSet())
-      setCurrentSpriteType((project?.spriteType as SpriteTypeKey) || "front")
+
+    if (project?.stencilData?.pixels || project?.animatedFrames) {
+      const initial = getInitialSpriteSet()
+      resetSpriteSet(initial)
+      const type = (project?.spriteType as SpriteTypeKey) || "front"
+      setCurrentSpriteType(type)
+      replaceStore({
+        front: initial.front,
+        back: initial.back,
+        frontShiny: initial.frontShiny,
+        backShiny: initial.backShiny,
+        currentSpriteType: type,
+        currentFrame,
+      })
+
     }
-  }, [project, resetSpriteSet])
+  }, [project, resetSpriteSet, replaceStore, currentFrame])
 
   // Load Pokemon battle sprites if available
   useEffect(() => {
@@ -182,12 +199,21 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       }
 
       resetSpriteSet(loaded)
-      setCurrentSpriteType((project?.spriteType as SpriteTypeKey) || "front")
+      const type = (project?.spriteType as SpriteTypeKey) || "front"
+      setCurrentSpriteType(type)
       setCurrentFrame(0)
+      replaceStore({
+        front: loaded.front,
+        back: loaded.back,
+        frontShiny: loaded.frontShiny,
+        backShiny: loaded.backShiny,
+        currentSpriteType: type,
+        currentFrame: 0,
+      })
     }
 
     loadSprites()
-  }, [project?.pokemonData, resetSpriteSet])
+  }, [project?.pokemonData, resetSpriteSet, replaceStore])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -221,8 +247,9 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   const handleFrameDataChange = useCallback(
     (newFrameData: FrameData) => {
       setSpriteSet({ ...spriteSet, [currentSpriteType]: newFrameData })
+      updateFrame(newFrameData[currentFrame] || [])
     },
-    [setSpriteSet, spriteSet, currentSpriteType],
+    [setSpriteSet, spriteSet, currentSpriteType, updateFrame, currentFrame],
   )
 
   const handleBrushStrokeComplete = useCallback(() => {
@@ -243,6 +270,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       [currentFrame]: rotatedPixels,
     }
     setSpriteSet({ ...spriteSet, [currentSpriteType]: newFrameData })
+    updateFrame(rotatedPixels)
   }
 
   const exportSpriteSheet = () => {
@@ -431,6 +459,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
             [currentFrame]: pixels,
           }
           setSpriteSet({ ...spriteSet, [currentSpriteType]: newFrameData })
+          updateFrame(pixels)
         }
         img.src = event.target?.result as string
       }
@@ -446,7 +475,21 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       [currentFrame]: spriteData.pixels,
     }
     setSpriteSet({ ...spriteSet, [spriteType]: newFrameData })
+    if (spriteType === currentSpriteType) {
+      updateFrame(spriteData.pixels)
+    }
   }
+
+  useEffect(() => {
+    replaceStore({
+      front: spriteSet.front,
+      back: spriteSet.back,
+      frontShiny: spriteSet.frontShiny,
+      backShiny: spriteSet.backShiny,
+      currentSpriteType,
+      currentFrame,
+    })
+  }, [spriteSet, currentSpriteType, currentFrame, replaceStore])
 
   return (
     <div className="min-h-screen bg-slate-900 text-white overflow-hidden">
@@ -575,7 +618,10 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
 
               <FrameNavigator
                 currentFrame={currentFrame}
-                onFrameChange={setCurrentFrame}
+                onFrameChange={(f) => {
+                  setCurrentFrame(f)
+                  setStoreFrame(f)
+                }}
                 frameData={frameData}
                 canvasWidth={canvasSize.width}
                 canvasHeight={canvasSize.height}
@@ -716,6 +762,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               {/* Canvas */}
               <div className="flex-1">
                 <SpriteCanvas
+                  key={currentSpriteType}
                   width={canvasSize.width}
                   height={canvasSize.height}
                   zoom={zoom}
@@ -754,7 +801,11 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               <BattleSpriteTabs
                 spriteSet={spriteSet}
                 currentSprite={currentSpriteType}
-                onSpriteChange={setCurrentSpriteType}
+                onSpriteChange={(type) => {
+                  setCurrentSpriteType(type)
+                  setStoreSpriteType(type)
+                  setZoom(1)
+                }}
                 canvasWidth={canvasSize.width}
                 canvasHeight={canvasSize.height}
               />

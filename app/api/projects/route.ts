@@ -27,13 +27,17 @@ export async function GET(request: NextRequest) {
     const totalCount = await Project.countDocuments({ userId: session.user.id })
 
     return NextResponse.json({
-      projects: projects.map((project) => ({
-        ...project,
-        id: project._id,
-        frameCount: project.frames?.length || 0,
-        previewPixels:
-          project.frames?.find((f: any) => f.frameNumber === 0)?.pixels || [],
-      })),
+      projects: projects.map((project) => {
+        const previewFromFrames =
+          project.frames?.find((f: any) => f.frameNumber === 0)?.pixels || []
+        const previewFromSet = project.spriteSet?.front?.[0] || []
+        return {
+          ...project,
+          id: project._id,
+          frameCount: project.frames?.length || 0,
+          previewPixels: previewFromFrames.length ? previewFromFrames : previewFromSet,
+        }
+      }),
       pagination: {
         page,
         limit,
@@ -54,8 +58,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { name, description, canvasWidth, canvasHeight, isAnimated, frameData, tags, pokemonData, gameVersion } =
-      await request.json()
+    const {
+      name,
+      description,
+      canvasWidth,
+      canvasHeight,
+      isAnimated,
+      frameData,
+      spriteSet,
+      tags,
+      pokemonData,
+      gameVersion,
+    } = await request.json()
 
     // Validate input
     if (!name || !canvasWidth || !canvasHeight) {
@@ -64,14 +78,15 @@ export async function POST(request: NextRequest) {
 
     await connectDB()
 
-    // Convert frameData object to frames array
-    const frames = []
-    if (frameData) {
-      for (const [frameNumber, pixels] of Object.entries(frameData)) {
+    // Convert provided data to frames array (for legacy preview usage)
+    const frames: any[] = []
+    const sourceData: any = frameData || (spriteSet ? spriteSet.front : null)
+    if (sourceData) {
+      for (const [frameNumber, pixels] of Object.entries(sourceData)) {
         if (Array.isArray(pixels) && pixels.length > 0) {
           frames.push({
             frameNumber: Number.parseInt(frameNumber),
-            pixels: pixels,
+            pixels,
           })
         }
       }
@@ -86,6 +101,7 @@ export async function POST(request: NextRequest) {
       canvasHeight,
       isAnimated: isAnimated || false,
       frames,
+      spriteSet: spriteSet || null,
       tags: tags || [],
       pokemonData: pokemonData || null,
       gameVersion: gameVersion || null,

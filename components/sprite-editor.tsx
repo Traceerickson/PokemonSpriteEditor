@@ -142,12 +142,13 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       backShiny: createEmptyFrames(),
     }
 
-    if (project?.spriteSet) {
+    const set = project?.spriteSet || project?.frameData
+    if (set) {
       return {
-        front: project.spriteSet.front || createEmptyFrames(),
-        back: project.spriteSet.back || createEmptyFrames(),
-        frontShiny: project.spriteSet.frontShiny || createEmptyFrames(),
-        backShiny: project.spriteSet.backShiny || createEmptyFrames(),
+        front: set.front || createEmptyFrames(),
+        back: set.back || createEmptyFrames(),
+        frontShiny: set.frontShiny || createEmptyFrames(),
+        backShiny: set.backShiny || createEmptyFrames(),
       }
     }
 

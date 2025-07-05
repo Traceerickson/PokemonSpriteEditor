@@ -9,6 +9,9 @@ import { Grid3X3, Download, Search, Loader2, ChevronDown, ChevronLeft, ChevronRi
 import { Input } from "@/components/ui/input"
 import { usePokemonPage, usePokemonSearch, gameVersions, type GameVersion } from "@/hooks/use-pokemon-api"
 import type { Pixel } from "@/types/pixel"
+import type { SpriteTypeKey } from "@/types/sprite-set"
+import { LoadSpriteModal } from "@/components/load-sprite-modal"
+import { useSpriteStore } from "@/contexts/sprite-store"
 
 interface SpriteRepositoryPageProps {
   onPageChange: (page: "studio" | "projects" | "stencils") => void
@@ -45,6 +48,10 @@ function PokemonCard({
   const [showSpriteOptions, setShowSpriteOptions] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [imageError, setImageError] = useState(false)
+  const [showModal, setShowModal] = useState(false)
+  const [loadedSet, setLoadedSet] = useState<any>(null)
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+  const { store } = useSpriteStore()
 
   const spriteOptions = [
     { key: "front", label: "Front", sprite: pokemon.sprites.front_default },
@@ -124,19 +131,9 @@ function PokemonCard({
         }
       }
 
-      const spriteData = {
-        id: `pokemon-${pokemon.id}-${gameVersion.id}`,
-        name: `${pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)} (${gameVersion.name})`,
-        description: `Official ${pokemon.name} sprites from ${gameVersion.name}`,
-        canvasWidth,
-        canvasHeight,
-        pokemonData: pokemon,
-        gameVersion: gameVersion,
-        spriteSet,
-        spriteType: selectedSprite,
-      }
-
-      onLoadSprite(spriteData)
+      setLoadedSet(spriteSet)
+      setDimensions({ width: canvasWidth, height: canvasHeight })
+      setShowModal(true)
     } catch (error) {
       console.error("Failed to load sprite:", error)
       alert("Failed to load sprite. This Pokemon might not be available in the selected game version.")
@@ -149,7 +146,58 @@ function PokemonCard({
     setImageError(true)
   }
 
+  const handleModalConfirm = (selTypes: SpriteTypeKey[], selFrames: number[]) => {
+    if (!loadedSet || !onLoadSprite) {
+      setShowModal(false)
+      return
+    }
+
+    const targets: Record<SpriteTypeKey, number[]> = {
+      front: [],
+      back: [],
+      frontShiny: [],
+      backShiny: [],
+    }
+
+    let hasExisting = false
+    selTypes.forEach((t) => {
+      selFrames.forEach((f) => {
+        if ((store as any)[t][f]?.length > 0) {
+          hasExisting = true
+        }
+      })
+    })
+
+    let overwrite = true
+    if (hasExisting) {
+      overwrite = window.confirm(
+        "Some frames already contain pixel data. Overwrite existing frames?",
+      )
+    }
+
+    selTypes.forEach((t) => {
+      selFrames.forEach((f) => {
+        if (overwrite || (store as any)[t][f]?.length === 0) {
+          targets[t].push(f)
+        }
+      })
+    })
+
+    const spriteData = {
+      spriteSet: loadedSet,
+      canvasWidth: dimensions.width,
+      canvasHeight: dimensions.height,
+      pokemonData: pokemon,
+      gameVersion,
+      targets,
+    }
+
+    onLoadSprite(spriteData)
+    setShowModal(false)
+  }
+
   return (
+    <>
     <Card className="p-3 bg-slate-800 border-slate-600 hover:border-slate-500 transition-all h-full flex flex-col">
       <div className="space-y-2 flex-1 flex flex-col">
         <div className="w-full h-20 bg-slate-700 rounded flex items-center justify-center relative flex-shrink-0">
@@ -241,6 +289,18 @@ function PokemonCard({
         </Button>
       </div>
     </Card>
+    <LoadSpriteModal
+      isOpen={showModal}
+      availableTypes={{
+        front: !!pokemon.sprites.front_default,
+        back: !!pokemon.sprites.back_default,
+        frontShiny: !!pokemon.sprites.front_shiny,
+        backShiny: !!pokemon.sprites.back_shiny,
+      }}
+      onCancel={() => setShowModal(false)}
+      onConfirm={handleModalConfirm}
+    />
+    </>
   )
 }
 

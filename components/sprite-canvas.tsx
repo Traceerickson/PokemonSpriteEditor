@@ -2,8 +2,6 @@
 
 import type React from "react"
 import { useRef, useEffect, useState, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
 
 interface SpriteCanvasProps {
   width: number
@@ -165,6 +163,42 @@ export function SpriteCanvas({
         const filtered = prev.filter((p) => !newPixels.some((np) => np.x === p.x && np.y === p.y))
         return [...filtered, ...newPixels]
       }, true) // Save flood fill to history immediately
+    },
+    [currentPixels, width, height, updateFramePixels],
+  )
+
+  const floodErase = useCallback(
+    (startX: number, startY: number) => {
+      const targetPixel = currentPixels.find((p) => p.x === startX && p.y === startY)
+      const targetColor = targetPixel?.color || "transparent"
+
+      const visited = new Set<string>()
+      const stack = [{ x: startX, y: startY }]
+      const removePixels: { x: number; y: number }[] = []
+
+      while (stack.length > 0) {
+        const { x, y } = stack.pop()!
+        const key = `${x},${y}`
+
+        if (visited.has(key) || x < 0 || x >= width || y < 0 || y >= height) continue
+
+        const currentPixel = currentPixels.find((p) => p.x === x && p.y === y)
+        const currentColor = currentPixel?.color || "transparent"
+
+        if (currentColor !== targetColor) continue
+
+        visited.add(key)
+        if (currentPixel) removePixels.push({ x, y })
+
+        stack.push({ x: x + 1, y }, { x: x - 1, y }, { x, y: y + 1 }, { x, y: y - 1 })
+      }
+
+      if (removePixels.length === 0) return
+
+      updateFramePixels(
+        (prev) => prev.filter((p) => !removePixels.some((rp) => rp.x === p.x && rp.y === p.y)),
+        true,
+      )
     },
     [currentPixels, width, height, updateFramePixels],
   )
@@ -356,6 +390,8 @@ export function SpriteCanvas({
         erasePixel(coords.x, coords.y)
       } else if (selectedTool === "bucket") {
         floodFill(coords.x, coords.y, selectedColor)
+      } else if (selectedTool === "bucket-erase") {
+        floodErase(coords.x, coords.y)
       }
     }
   }
@@ -406,20 +442,28 @@ export function SpriteCanvas({
     const container = containerRef.current
     if (!container) return
 
-    if (e.shiftKey) {
+    if (e.shiftKey && !e.ctrlKey) {
       e.preventDefault()
-      const totalGridWidth = width * basePixelSize * zoom
-      const totalGridHeight = height * basePixelSize * zoom
-      const maxPanX = Math.max(0, totalGridWidth - container.clientWidth)
-      const maxPanY = Math.max(0, totalGridHeight - container.clientHeight)
+      const rect = container.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left + panOffset.x
+      const mouseY = e.clientY - rect.top + panOffset.y
 
-      const deltaX = e.deltaX || e.deltaY
-      const deltaY = e.deltaY
+      const direction = e.deltaY < 0 ? 1 : -1
+      const newZoom = Math.min(3, Math.max(0.5, parseFloat((zoom + direction * 0.1).toFixed(2))))
+      const scale = newZoom / zoom
 
-      setPanOffset((prev) => ({
-        x: Math.max(0, Math.min(maxPanX, prev.x + deltaX)),
-        y: Math.max(0, Math.min(maxPanY, prev.y + deltaY)),
-      }))
+      const newPanX = (mouseX * scale) - (e.clientX - rect.left)
+      const newPanY = (mouseY * scale) - (e.clientY - rect.top)
+
+      const maxPanX = Math.max(0, width * basePixelSize * newZoom - container.clientWidth)
+      const maxPanY = Math.max(0, height * basePixelSize * newZoom - container.clientHeight)
+
+      setPanOffset({
+        x: Math.max(0, Math.min(maxPanX, newPanX)),
+        y: Math.max(0, Math.min(maxPanY, newPanY)),
+      })
+
+      onZoomChange?.(newZoom)
       return
     }
 
@@ -457,6 +501,8 @@ export function SpriteCanvas({
         return "grab"
       case "bucket":
         return "pointer"
+      case "bucket-erase":
+        return "pointer"
       case "select":
         return "crosshair"
       case "eyedropper":
@@ -468,17 +514,6 @@ export function SpriteCanvas({
 
   return (
     <div className="h-full relative">
-      <div className="absolute top-2 right-2 z-10 bg-slate-800 bg-opacity-70 rounded px-2 py-1 flex items-center gap-2 text-xs">
-        <Slider
-          min={0.5}
-          max={3}
-          step={0.1}
-          value={[zoom]}
-          onValueChange={(v) => onZoomChange?.(v[0])}
-          className="w-24 h-2"
-        />
-        <span className="text-slate-200 whitespace-nowrap">Zoom: {Math.round(zoom * 100)}%</span>
-      </div>
       <div ref={containerRef} className="flex-1 h-full overflow-hidden border border-slate-600 rounded bg-slate-700 relative">
         <canvas
           ref={canvasRef}

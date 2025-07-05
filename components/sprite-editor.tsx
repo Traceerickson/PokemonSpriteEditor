@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
+import { Slider } from "@/components/ui/slider"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import {
@@ -14,7 +16,7 @@ import {
   Redo,
   Grid3X3,
   Eraser,
-  BoxIcon as Bucket,
+  PaintBucket,
   Square,
   Palette,
   Droplet,
@@ -29,7 +31,7 @@ import {
 import { SpriteCanvas } from "@/components/sprite-canvas"
 import { BattleSpriteTabs, spriteTypes } from "@/components/battle-sprite-tabs"
 import { FrameNavigator } from "@/components/frame-navigator"
-import { ColorGrid } from "@/components/color-grid"
+import { ColorPaletteGrid } from "@/components/color-palette-grid"
 import { ExportModal } from "@/components/export-modal"
 import { useUndoRedo } from "@/hooks/use-undo-redo"
 import type { Pixel } from "@/types/pixel"
@@ -55,7 +57,6 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   const [selectedColor, setSelectedColor] = useState("#000000")
   const [currentFrame, setCurrentFrame] = useState(store.currentFrame)
   const [showGrid, setShowGrid] = useState(true)
-  const [showColorGrid, setShowColorGrid] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false)
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
@@ -603,20 +604,13 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
             <div className="p-4 space-y-6 overflow-y-auto flex-1">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <div
-                    className="w-8 h-8 rounded border-2 border-slate-600 cursor-pointer"
-                    style={{ backgroundColor: selectedColor }}
-                    onClick={() => setShowColorGrid(true)}
+                  <div className="w-8 h-8 rounded border-2 border-slate-600" style={{ backgroundColor: selectedColor }} />
+                  <ColorPaletteGrid
+                    currentColor={selectedColor}
+                    onColorSelect={(c) => {
+                      setSelectedColor(c)
+                    }}
                   />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowColorGrid(true)}
-                    className="bg-slate-700 border-slate-600 text-white"
-                  >
-                    <Palette className="w-4 h-4 mr-2" />
-                    Color
-                  </Button>
                 </div>
               </div>
 
@@ -682,80 +676,155 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
             <div className="bg-slate-800 rounded-lg p-4 h-full flex flex-col">
               {/* Canvas Tools */}
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant={selectedTool === "pencil" ? "default" : "ghost"}
-                    onClick={() => setSelectedTool("pencil")}
-                    className={selectedTool === "pencil" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
-                  >
-                    <Brush className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedTool === "eraser" ? "default" : "ghost"}
-                    onClick={() => setSelectedTool("eraser")}
-                    className={selectedTool === "eraser" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
-                  >
-                    <Eraser className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedTool === "bucket" ? "default" : "ghost"}
-                    onClick={() => setSelectedTool("bucket")}
-                    className={selectedTool === "bucket" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
-                  >
-                    <Bucket className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedTool === "select" ? "default" : "ghost"}
-                    onClick={() => setSelectedTool("select")}
-                    className={selectedTool === "select" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
-                  >
-                    <Square className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={selectedTool === "eyedropper" ? "default" : "ghost"}
-                    onClick={() => setSelectedTool("eyedropper")}
-                    className={selectedTool === "eyedropper" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
-                  >
-                    <Droplet className="w-4 h-4" />
-                  </Button>
+                <TooltipProvider delayDuration={0}>
+                  <div className="flex items-center gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={selectedTool === "pencil" ? "default" : "ghost"}
+                          onClick={() => setSelectedTool("pencil")}
+                          className={selectedTool === "pencil" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                        >
+                          <Brush className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Draw Pixel</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={selectedTool === "eraser" ? "default" : "ghost"}
+                          onClick={() => setSelectedTool("eraser")}
+                          className={selectedTool === "eraser" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                        >
+                          <Eraser className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Erase Pixel</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={selectedTool === "bucket" ? "default" : "ghost"}
+                          onClick={() => setSelectedTool("bucket")}
+                          className={selectedTool === "bucket" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                        >
+                          <PaintBucket className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Bucket Fill</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={selectedTool === "bucket-erase" ? "default" : "ghost"}
+                          onClick={() => setSelectedTool("bucket-erase")}
+                          className={selectedTool === "bucket-erase" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                        >
+                          <PaintBucket className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Bucket Erase</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={selectedTool === "select" ? "default" : "ghost"}
+                          onClick={() => setSelectedTool("select")}
+                          className={selectedTool === "select" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                        >
+                          <Square className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Marquee Select</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant={selectedTool === "eyedropper" ? "default" : "ghost"}
+                          onClick={() => setSelectedTool("eyedropper")}
+                          className={selectedTool === "eyedropper" ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                        >
+                          <Droplet className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Color Picker</TooltipContent>
+                    </Tooltip>
 
-                  <div className="w-px h-6 bg-slate-600 mx-1" />
+                    <div className="w-px h-6 bg-slate-600 mx-1" />
 
-                  <Button size="sm" variant="ghost" onClick={handleRotateFrame}>
-                    <RotateCw className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowGrid(!showGrid)}
-                    className={showGrid ? "text-cyan-400" : ""}
-                  >
-                    {showGrid ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={undo}
-                    disabled={!canUndo}
-                    className={!canUndo ? "opacity-50" : ""}
-                  >
-                    <Undo className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={redo}
-                    disabled={!canRedo}
-                    className={!canRedo ? "opacity-50" : ""}
-                  >
-                    <Redo className="w-4 h-4" />
-                  </Button>
-                </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="sm" variant="ghost" onClick={handleRotateFrame}>
+                          <RotateCw className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Rotate Frame</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setShowGrid(!showGrid)}
+                          className={showGrid ? "text-cyan-400" : ""}
+                        >
+                          {showGrid ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Toggle Grid</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={undo}
+                          disabled={!canUndo}
+                          className={!canUndo ? "opacity-50" : ""}
+                        >
+                          <Undo className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Undo</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={redo}
+                          disabled={!canRedo}
+                          className={!canRedo ? "opacity-50" : ""}
+                        >
+                          <Redo className="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Redo</TooltipContent>
+                    </Tooltip>
+
+                    <div className="flex items-center gap-2 pl-2">
+                      <Slider
+                        min={0.5}
+                        max={3}
+                        step={0.1}
+                        value={[zoom]}
+                        onValueChange={(v) => {
+                          setZoom(v[0])
+                          setStoreZoom(v[0])
+                        }}
+                        className="w-24 h-2"
+                      />
+                      <span className="text-xs text-slate-200">Zoom: {Math.round(zoom * 100)}%</span>
+                    </div>
+                  </div>
+                </TooltipProvider>
 
                 <div className="text-sm text-slate-400">
                   {canvasSize.width}×{canvasSize.height} • {Math.round(zoom * 100)}% zoom • Frame {currentFrame + 1}
@@ -821,13 +890,6 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
           )}
         </div>
       </div>
-
-      <ColorGrid
-        isOpen={showColorGrid}
-        onClose={() => setShowColorGrid(false)}
-        onColorSelect={setSelectedColor}
-        currentColor={selectedColor}
-      />
 
       <ExportModal
         isOpen={showExportModal}

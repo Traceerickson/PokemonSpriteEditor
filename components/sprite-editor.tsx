@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -31,6 +31,9 @@ import { BattleSpriteTabs, spriteTypes } from "@/components/battle-sprite-tabs"
 import { FrameNavigator } from "@/components/frame-navigator"
 import { ColorGrid } from "@/components/color-grid"
 import { ExportModal } from "@/components/export-modal"
+import { SaveProjectModal } from "@/components/save-project-modal"
+import { LoginRequiredModal } from "@/components/login-required-modal"
+import { UnsavedChangesModal } from "@/components/unsaved-changes-modal"
 import { useUndoRedo } from "@/hooks/use-undo-redo"
 import type { Pixel } from "@/types/pixel"
 import type { SpriteSet, SpriteTypeKey, FrameData } from "@/types/sprite-set"
@@ -61,6 +64,57 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   const [rightSidebarCollapsed, setRightSidebarCollapsed] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false)
+  const [lastSaved, setLastSaved] = useState<SpriteSet | null>(null)
+  const [hasUnsaved, setHasUnsaved] = useState(false)
+
+  const handleNewProjectClick = () => {
+    if (hasUnsaved) {
+      pendingPage.current = "new"
+      setShowUnsavedModal(true)
+    } else {
+      onNewProject()
+    }
+  }
+
+  const handleNavigate = (page: "studio" | "projects" | "stencils") => {
+    if (hasUnsaved) {
+      setShowUnsavedModal(true)
+      pendingPage.current = page
+    } else {
+      onPageChange(page)
+    }
+  }
+
+  const pendingPage = useRef<"studio" | "projects" | "stencils" | "new" | null>(null)
+
+  const handleUnsavedCancel = () => {
+    setShowUnsavedModal(false)
+    pendingPage.current = null
+  }
+
+  const handleUnsavedDiscard = () => {
+    setShowUnsavedModal(false)
+    if (pendingPage.current) {
+      setHasUnsaved(false)
+      if (pendingPage.current === "new") {
+        onNewProject()
+      } else {
+        onPageChange(pendingPage.current)
+      }
+      pendingPage.current = null
+    } else {
+      setHasUnsaved(false)
+      onNewProject()
+    }
+  }
+
+  const handleUnsavedSave = () => {
+    setShowUnsavedModal(false)
+    setShowSaveModal(true)
+  }
 
   const createEmptyFrames = (): FrameData => ({ 0: [], 1: [], 2: [], 3: [] })
 
@@ -118,6 +172,28 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
   )
 
   const frameData = spriteSet[currentSpriteType]
+
+  // track unsaved changes
+  useEffect(() => {
+    if (!lastSaved) {
+      setLastSaved(spriteSet)
+      return
+    }
+    if (JSON.stringify(spriteSet) !== JSON.stringify(lastSaved)) {
+      setHasUnsaved(true)
+    }
+  }, [spriteSet, lastSaved])
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsaved) {
+        e.preventDefault()
+        e.returnValue = ""
+      }
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload)
+  }, [hasUnsaved])
 
   // Load stencil data when project changes
   useEffect(() => {
@@ -236,7 +312,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
             break
           case "s":
             e.preventDefault()
-            handleSaveToCloud()
+            setShowSaveModal(true)
             break
         }
       }
@@ -327,22 +403,22 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
     }, "image/png")
   }
 
-  const handleSaveToCloud = async () => {
+  const handleSaveToCloud = async (name: string, tags: string[]) => {
     if (!session?.user?.id) {
-      alert("Please sign in to save projects to the cloud")
+      setShowLoginModal(true)
       return
     }
 
     setIsSaving(true)
     try {
       const projectData = {
-        name: project?.name || "Untitled Project",
+        name: name || project?.name || "Untitled Project",
         description: project?.description || "",
         canvasWidth: canvasSize.width,
         canvasHeight: canvasSize.height,
         isAnimated: project?.isAnimated || false,
         spriteSet,
-        tags: project?.tags || [],
+        tags: tags,
         pokemonData: project?.pokemonData || null,
         gameVersion: project?.gameVersion || null,
       }
@@ -362,7 +438,20 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       }
 
       setCurrentProjectId(result.project.id)
+      setLastSaved(spriteSet)
+      setHasUnsaved(false)
       alert("Project saved to cloud successfully!")
+      if (pendingPage.current) {
+        const dest = pendingPage.current
+        pendingPage.current = null
+        if (dest === "new") {
+          onNewProject()
+        } else {
+          onPageChange(dest)
+        }
+      } else {
+        onPageChange("projects")
+      }
     } catch (error) {
       console.error("Save error:", error)
       alert("Failed to save project to cloud")
@@ -391,6 +480,8 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
     link.click()
 
     URL.revokeObjectURL(url)
+    setLastSaved(spriteSet)
+    setHasUnsaved(false)
   }
 
   const handleLoad = () => {
@@ -408,6 +499,8 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
           setSpriteSet(projectData.spriteSet || getInitialSpriteSet())
           setCurrentSpriteType(projectData.currentSpriteType || "front")
           setCurrentFrame(projectData.currentFrame || 0)
+          setLastSaved(projectData.spriteSet || getInitialSpriteSet())
+          setHasUnsaved(false)
         } catch (error) {
           console.error("Failed to load project:", error)
         }
@@ -516,21 +609,21 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               <Button
                 variant="ghost"
                 className="text-slate-300 hover:text-white"
-                onClick={onNewProject}
+                onClick={handleNewProjectClick}
               >
                 New Project
               </Button>
               <Button
                 variant="ghost"
                 className="text-slate-300 hover:text-white"
-                onClick={() => onPageChange("projects")}
+                onClick={() => handleNavigate("projects")}
               >
                 Projects
               </Button>
               <Button
                 variant="ghost"
                 className="text-slate-300 hover:text-white"
-                onClick={() => onPageChange("stencils")}
+                onClick={() => handleNavigate("stencils")}
               >
                 Pokemon Repository
               </Button>
@@ -634,7 +727,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               <div className="space-y-3">
                 {session?.user && (
                   <Button
-                    onClick={handleSaveToCloud}
+                    onClick={() => setShowSaveModal(true)}
                     className="w-full bg-blue-600 hover:bg-blue-700"
                     disabled={isSaving}
                   >
@@ -835,6 +928,26 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         frameData={frameData}
         canvasWidth={canvasSize.width}
         canvasHeight={canvasSize.height}
+      />
+      <SaveProjectModal
+        isOpen={showSaveModal}
+        defaultName={project?.name || "Untitled Project"}
+        defaultTags={project?.tags || []}
+        onCancel={() => setShowSaveModal(false)}
+        onSave={(n, t) => {
+          setShowSaveModal(false)
+          handleSaveToCloud(n, t)
+        }}
+      />
+      <LoginRequiredModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+      />
+      <UnsavedChangesModal
+        isOpen={showUnsavedModal}
+        onCancel={handleUnsavedCancel}
+        onDiscard={handleUnsavedDiscard}
+        onSave={handleUnsavedSave}
       />
     </div>
   )

@@ -656,7 +656,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               <Upload className="w-4 h-4 mr-2" />
               Import
             </Button>
-            <Button className="bg-purple-600 hover:bg-purple-700" onClick={handleSave}>
+            <Button className="bg-purple-600 hover:bg-purple-700" onClick={() => setShowSaveModal(true)}>
               <SaveIcon className="w-4 h-4 mr-2" />
               Save
             </Button>
@@ -737,7 +737,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
                     ) : (
                       <>
                         <Cloud className="w-4 h-4 mr-2" />
-                        Save to Cloud
+                        Save
                       </>
                     )}
                   </Button>
@@ -999,6 +999,9 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         isOpen={showSaveModal}
         defaultName={project?.name || "Untitled Project"}
         defaultTags={project?.tags || []}
+        spriteSet={spriteSet}
+        canvasWidth={canvasSize.width}
+        canvasHeight={canvasSize.height}
         onCancel={() => setShowSaveModal(false)}
         onSave={(n, t) => {
           setShowSaveModal(false)

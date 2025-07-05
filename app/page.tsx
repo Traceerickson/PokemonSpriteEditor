@@ -94,6 +94,25 @@ export default function Home() {
     setCurrentPage("studio")
   }
 
+  const handleProjectSelect = async (id: string) => {
+    try {
+      const res = await fetch(`/api/projects/${id}`)
+      if (!res.ok) throw new Error('Failed to load project')
+      const data = await res.json()
+      const project = data.project
+      if (project.frameData) {
+        setCurrentProject({
+          name: project.name,
+          dimensions: { width: project.canvasWidth, height: project.canvasHeight },
+          spriteSet: project.frameData,
+          tags: project.tags,
+        })
+        setCurrentPage('studio')
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
   const handlePageChange = (page: "studio" | "projects" | "stencils") => {
     setCurrentPage(page)
   }
@@ -112,7 +131,13 @@ export default function Home() {
   }
 
   if (currentPage === "projects") {
-    return <ProjectsPage onPageChange={handlePageChange} onNewProject={() => setShowCreateModal(true)} />
+    return (
+      <ProjectsPage
+        onPageChange={handlePageChange}
+        onNewProject={() => setShowCreateModal(true)}
+        onProjectSelect={handleProjectSelect}
+      />
+    )
   }
 
   if (currentPage === "stencils") {

@@ -1,14 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+
+import type { SpriteSet } from "@/types/sprite-set"
+import type { Pixel } from "@/types/pixel"
+import { spriteTypes } from "@/components/battle-sprite-tabs"
 
 interface SaveProjectModalProps {
   isOpen: boolean
   defaultName: string
   defaultTags?: string[]
+  spriteSet: SpriteSet
+  canvasWidth: number
+  canvasHeight: number
   onCancel: () => void
   onSave: (name: string, tags: string[]) => void
 }
@@ -23,10 +30,57 @@ const tagOptions = [
   "gen5",
 ]
 
+function SpritePreview({
+  label,
+  pixels,
+  canvasWidth,
+  canvasHeight,
+}: {
+  label: string
+  pixels: Pixel[]
+  canvasWidth: number
+  canvasHeight: number
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const previewSize = 48
+    const scale = previewSize / Math.max(canvasWidth, canvasHeight)
+
+    ctx.clearRect(0, 0, previewSize, previewSize)
+    ctx.fillStyle = "#374151"
+    ctx.fillRect(0, 0, previewSize, previewSize)
+    ctx.imageSmoothingEnabled = false
+
+    pixels.forEach((p) => {
+      ctx.fillStyle = p.color
+      const x = Math.floor(p.x * scale)
+      const y = Math.floor(p.y * scale)
+      const size = Math.max(1, Math.floor(scale))
+      ctx.fillRect(x, y, size, size)
+    })
+  }, [pixels, canvasWidth, canvasHeight])
+
+  return (
+    <div className="flex flex-col items-center text-center">
+      <canvas ref={canvasRef} width={48} height={48} className="rounded mb-1" />
+      <span className="text-xs text-white">{label}</span>
+    </div>
+  )
+}
+
 export function SaveProjectModal({
   isOpen,
   defaultName,
   defaultTags = [],
+  spriteSet,
+  canvasWidth,
+  canvasHeight,
   onCancel,
   onSave,
 }: SaveProjectModalProps) {
@@ -68,6 +122,20 @@ export function SaveProjectModal({
                     {tag}
                   </label>
                 </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-sm text-slate-400 block mb-2">Preview</label>
+            <div className="grid grid-cols-2 gap-2">
+              {spriteTypes.map((s) => (
+                <SpritePreview
+                  key={s.id}
+                  label={s.label}
+                  pixels={spriteSet[s.id][0] || []}
+                  canvasWidth={canvasWidth}
+                  canvasHeight={canvasHeight}
+                />
               ))}
             </div>
           </div>

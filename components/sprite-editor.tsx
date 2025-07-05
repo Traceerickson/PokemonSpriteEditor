@@ -45,9 +45,9 @@ interface SpriteEditorProps {
 export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEditorProps) {
   const { data: session } = useSession()
   const router = useRouter()
-  const { store, setCurrentSpriteType: setStoreSpriteType, setCurrentFrame: setStoreFrame, updateFrame, replaceStore } = useSpriteStore()
+  const { store, setCurrentSpriteType: setStoreSpriteType, setCurrentFrame: setStoreFrame, updateFrame, replaceStore, setZoom: setStoreZoom } = useSpriteStore()
   const [selectedTool, setSelectedTool] = useState("pencil")
-  const [zoom, setZoom] = useState(1)
+  const [zoom, setZoom] = useState(store.zoom)
   const [canvasSize] = useState({
     width: project?.dimensions?.width || 80,
     height: project?.dimensions?.height || 80,
@@ -134,6 +134,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         backShiny: initial.backShiny,
         currentSpriteType: type,
         currentFrame,
+        zoom,
       })
 
     }
@@ -209,6 +210,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         backShiny: loaded.backShiny,
         currentSpriteType: type,
         currentFrame: 0,
+        zoom,
       })
     }
 
@@ -488,8 +490,9 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       backShiny: spriteSet.backShiny,
       currentSpriteType,
       currentFrame,
+      zoom,
     })
-  }, [spriteSet, currentSpriteType, currentFrame, replaceStore])
+  }, [spriteSet, currentSpriteType, currentFrame, zoom, replaceStore])
 
   return (
     <div className="min-h-screen bg-slate-900 text-white overflow-hidden">
@@ -771,7 +774,10 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
                   currentFrame={currentFrame}
                   frameData={frameData}
                   onFrameDataChange={handleFrameDataChange}
-                  onZoomChange={setZoom}
+                  onZoomChange={(z) => {
+                    setZoom(z)
+                    setStoreZoom(z)
+                  }}
                   onColorPick={setSelectedColor}
                   showGrid={showGrid}
                   onBrushStrokeComplete={handleBrushStrokeComplete}
@@ -805,6 +811,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
                   setCurrentSpriteType(type)
                   setStoreSpriteType(type)
                   setZoom(1)
+                  setStoreZoom(1)
                 }}
                 canvasWidth={canvasSize.width}
                 canvasHeight={canvasSize.height}

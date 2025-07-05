@@ -9,6 +9,7 @@ export interface SpriteStore {
   backShiny: FrameData
   currentSpriteType: SpriteTypeKey
   currentFrame: number
+  zoom: number
 }
 
 interface SpriteStoreContextValue {
@@ -17,6 +18,7 @@ interface SpriteStoreContextValue {
   setCurrentFrame: (frame: number) => void
   updateFrame: (pixels: Pixel[]) => void
   replaceStore: (newStore: SpriteStore) => void
+  setZoom: (zoom: number) => void
 }
 
 const createEmptyFrames = (): FrameData => ({ 0: [], 1: [], 2: [], 3: [] })
@@ -28,6 +30,7 @@ const defaultStore: SpriteStore = {
   backShiny: createEmptyFrames(),
   currentSpriteType: 'front',
   currentFrame: 0,
+  zoom: 1,
 }
 
 const SpriteStoreContext = createContext<SpriteStoreContextValue | undefined>(undefined)
@@ -59,6 +62,10 @@ export function SpriteStoreProvider({ children }: { children: React.ReactNode })
     setStore((s) => ({ ...s, currentFrame: frame }))
   }
 
+  const setZoom = (z: number) => {
+    setStore((s) => ({ ...s, zoom: z }))
+  }
+
   const updateFrame = (pixels: Pixel[]) => {
     setStore((s) => {
       const frameData = s[s.currentSpriteType]
@@ -73,7 +80,7 @@ export function SpriteStoreProvider({ children }: { children: React.ReactNode })
 
   return (
     <SpriteStoreContext.Provider
-      value={{ store, setCurrentSpriteType, setCurrentFrame, updateFrame, replaceStore }}
+      value={{ store, setCurrentSpriteType, setCurrentFrame, updateFrame, replaceStore, setZoom }}
     >
       {children}
     </SpriteStoreContext.Provider>

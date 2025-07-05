@@ -403,11 +403,11 @@ export function SpriteCanvas({
   }
 
   const handleWheel = (e: React.WheelEvent) => {
+    const container = containerRef.current
+    if (!container) return
+
     if (e.shiftKey) {
       e.preventDefault()
-      const container = containerRef.current
-      if (!container) return
-
       const totalGridWidth = width * basePixelSize * zoom
       const totalGridHeight = height * basePixelSize * zoom
       const maxPanX = Math.max(0, totalGridWidth - container.clientWidth)
@@ -420,6 +420,31 @@ export function SpriteCanvas({
         x: Math.max(0, Math.min(maxPanX, prev.x + deltaX)),
         y: Math.max(0, Math.min(maxPanY, prev.y + deltaY)),
       }))
+      return
+    }
+
+    if (!e.ctrlKey) {
+      e.preventDefault()
+      const rect = container.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left + panOffset.x
+      const mouseY = e.clientY - rect.top + panOffset.y
+
+      const direction = e.deltaY < 0 ? 1 : -1
+      const newZoom = Math.min(3, Math.max(0.5, parseFloat((zoom + direction * 0.1).toFixed(2))))
+      const scale = newZoom / zoom
+
+      const newPanX = (mouseX * scale) - (e.clientX - rect.left)
+      const newPanY = (mouseY * scale) - (e.clientY - rect.top)
+
+      const maxPanX = Math.max(0, width * basePixelSize * newZoom - container.clientWidth)
+      const maxPanY = Math.max(0, height * basePixelSize * newZoom - container.clientHeight)
+
+      setPanOffset({
+        x: Math.max(0, Math.min(maxPanX, newPanX)),
+        y: Math.max(0, Math.min(maxPanY, newPanY)),
+      })
+
+      onZoomChange?.(newZoom)
     }
   }
 
@@ -442,23 +467,19 @@ export function SpriteCanvas({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 w-48">
-          <Slider
-            min={0.5}
-            max={3}
-            step={0.1}
-            value={[zoom]}
-            onValueChange={(v) => onZoomChange?.(v[0])}
-          />
-          <span className="text-sm text-slate-400 w-14 text-right">
-            {Math.round(zoom * 100)}%
-          </span>
-        </div>
-        <div className="text-xs text-slate-500">Shift+Drag to pan • Shift+Scroll to pan • Arrow keys to navigate</div>
+    <div className="h-full relative">
+      <div className="absolute top-2 right-2 z-10 bg-slate-800 bg-opacity-70 rounded px-2 py-1 flex items-center gap-2 text-xs">
+        <Slider
+          min={0.5}
+          max={3}
+          step={0.1}
+          value={[zoom]}
+          onValueChange={(v) => onZoomChange?.(v[0])}
+          className="w-24 h-2"
+        />
+        <span className="text-slate-200 whitespace-nowrap">Zoom: {Math.round(zoom * 100)}%</span>
       </div>
-      <div ref={containerRef} className="flex-1 overflow-hidden border border-slate-600 rounded bg-slate-700">
+      <div ref={containerRef} className="flex-1 h-full overflow-hidden border border-slate-600 rounded bg-slate-700 relative">
         <canvas
           ref={canvasRef}
           className="block"

@@ -513,16 +513,23 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
 
   const applyPixelsToFrame = useCallback(
     (pixels: Pixel[], spriteType: SpriteTypeKey, frame: number) => {
-      setSpriteSet((prev) => ({
-        ...prev,
-        [spriteType]: { ...prev[spriteType], [frame]: pixels },
-      }))
+      const updatedSpriteType = {
+        ...spriteSet[spriteType],
+        [frame]: pixels,
+      }
+
+      const newSpriteSet = {
+        ...spriteSet,
+        [spriteType]: updatedSpriteType,
+      }
+
+      setSpriteSet(newSpriteSet)
 
       if (spriteType === currentSpriteType && frame === currentFrame) {
         updateFrame(pixels)
       }
     },
-    [setSpriteSet, updateFrame, currentSpriteType, currentFrame],
+    [setSpriteSet, spriteSet, updateFrame, currentSpriteType, currentFrame],
   )
 
   const handleImport = () => {

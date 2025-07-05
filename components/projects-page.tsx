@@ -227,32 +227,35 @@ export function ProjectsPage({ onPageChange, onNewProject, onProjectSelect }: Pr
               {projects.map((project) => (
                 <Card
                   key={project.id || project._id}
-                  className="p-4 bg-slate-800 border-slate-600 hover:border-slate-500 cursor-pointer transition-all"
-                  onClick={() => onProjectSelect(project.id || project._id)}
+                  className="p-4 bg-slate-800 border-slate-600 hover:border-slate-500 transition-all space-y-3"
                 >
-                  <div className="space-y-3">
-                    <div className="flex flex-col items-center justify-center">
-                      <ProjectPreview
-                        pixels={project.previewPixels || []}
-                        width={project.canvasWidth}
-                        height={project.canvasHeight}
-                      />
-                      <span className="text-slate-400 text-xs mt-1">
-                        {project.canvasWidth}×{project.canvasHeight}
-                        {project.isAnimated && " • Animated"}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-white truncate">{project.name}</h3>
-                      <p className="text-sm text-slate-400 truncate">
-                        {project.frameCount || 0} frames • {project.tags?.length || 0} tags
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500">
-                      <Clock className="w-3 h-3" />
-                      {formatDate(project.updatedAt)}
-                    </div>
+                  <div className="flex flex-col items-center justify-center">
+                    <ProjectPreview
+                      pixels={project.previewPixels || []}
+                      width={project.canvasWidth}
+                      height={project.canvasHeight}
+                    />
+                    <span className="text-slate-400 text-xs mt-1">
+                      {project.canvasWidth}×{project.canvasHeight}
+                      {project.isAnimated && " • Animated"}
+                    </span>
                   </div>
+                  <div>
+                    <h3 className="font-medium text-white truncate">{project.name}</h3>
+                    <p className="text-sm text-slate-400 truncate">
+                      {project.frameCount || 0} frames • {project.tags?.length || 0} tags
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <Clock className="w-3 h-3" />
+                    {formatDate(project.updatedAt)}
+                  </div>
+                  <Button
+                    className="w-full bg-cyan-600 hover:bg-cyan-700"
+                    onClick={() => onProjectSelect(project.id || project._id)}
+                  >
+                    Load Project
+                  </Button>
                 </Card>
               ))}
 

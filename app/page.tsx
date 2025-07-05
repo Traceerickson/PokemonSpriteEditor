@@ -20,7 +20,25 @@ export default function Home() {
   }
 
   const handleLoadSprite = (spriteData: any) => {
-    if (spriteData.spriteSet) {
+    if (spriteData.targets && currentProject?.spriteSet) {
+      const newSet = {
+        front: { ...currentProject.spriteSet.front },
+        back: { ...currentProject.spriteSet.back },
+        frontShiny: { ...currentProject.spriteSet.frontShiny },
+        backShiny: { ...currentProject.spriteSet.backShiny },
+      }
+
+      ;(Object.keys(spriteData.targets) as Array<keyof typeof newSet>).forEach((type) => {
+        const frames: number[] = spriteData.targets[type]
+        if (!frames || frames.length === 0) return
+        const pixels = spriteData.spriteSet[type][0] || []
+        frames.forEach((f: number) => {
+          newSet[type][f] = pixels
+        })
+      })
+
+      setCurrentProject({ ...currentProject, spriteSet: newSet })
+    } else if (spriteData.spriteSet) {
       const projectData = {
         name: spriteData.name,
         template: {

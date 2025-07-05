@@ -656,6 +656,10 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
               <Upload className="w-4 h-4 mr-2" />
               Import
             </Button>
+            <Button className="bg-purple-600 hover:bg-purple-700" onClick={handleSave}>
+              <SaveIcon className="w-4 h-4 mr-2" />
+              Save
+            </Button>
             <Button className="bg-green-600 hover:bg-green-700" onClick={() => setShowExportModal(true)}>
               <Download className="w-4 h-4 mr-2" />
               Export

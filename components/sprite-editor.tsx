@@ -73,6 +73,15 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
       backShiny: createEmptyFrames(),
     }
 
+    if (project?.spriteSet) {
+      return {
+        front: project.spriteSet.front || createEmptyFrames(),
+        back: project.spriteSet.back || createEmptyFrames(),
+        frontShiny: project.spriteSet.frontShiny || createEmptyFrames(),
+        backShiny: project.spriteSet.backShiny || createEmptyFrames(),
+      }
+    }
+
     if (project?.isAnimated && project?.animatedFrames) {
       blank.front = project.animatedFrames
       return blank
@@ -112,6 +121,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
 
   // Load stencil data when project changes
   useEffect(() => {
+
     if (project?.stencilData?.pixels || project?.animatedFrames) {
       const initial = getInitialSpriteSet()
       resetSpriteSet(initial)
@@ -125,6 +135,7 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         currentSpriteType: type,
         currentFrame,
       })
+
     }
   }, [project, resetSpriteSet, replaceStore, currentFrame])
 

@@ -232,6 +232,28 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
     }
   }, [project, resetSpriteSet, replaceStore, currentFrame])
 
+  // Load sprite set data when opening an existing project
+  useEffect(() => {
+    if (project?.spriteSet || project?.frameData) {
+      const initial = getInitialSpriteSet()
+      resetSpriteSet(initial)
+      const type = (project?.spriteType as SpriteTypeKey) || "front"
+      setCurrentSpriteType(type)
+      setCurrentFrame(0)
+      replaceStore({
+        front: initial.front,
+        back: initial.back,
+        frontShiny: initial.frontShiny,
+        backShiny: initial.backShiny,
+        currentSpriteType: type,
+        currentFrame: 0,
+        zoom,
+      })
+      setLastSaved(initial)
+      setHasUnsaved(false)
+    }
+  }, [project?.spriteSet, project?.frameData])
+
   // Load Pokemon battle sprites if available
   useEffect(() => {
     const loadSprites = async () => {
@@ -465,8 +487,6 @@ export function SpriteEditor({ project, onNewProject, onPageChange }: SpriteEdit
         } else {
           onPageChange(dest)
         }
-      } else {
-        onPageChange("projects")
       }
     } catch (error) {
       console.error("Save error:", error)
